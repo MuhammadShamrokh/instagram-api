@@ -19,10 +19,10 @@ cursor = connector.cursor()
 
 
 def get_users_profile_id_list():
-    # profiles_df = pd.read_csv(profiles_data_input_file_url)
-    ret_list = [55568794856]
+    profiles_df = pd.read_csv(profiles_data_input_file_url)
+    profiles_id_list = list(profiles_df['ID'])
 
-    return ret_list
+    return profiles_id_list[:]
 
 
 def init_user_profiles_table():

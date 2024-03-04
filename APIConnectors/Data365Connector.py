@@ -47,6 +47,48 @@ class Data365Connector:
 
         return profile_data
 
+    def get_profile_data_tuple_from_json(self, profile_json):
+
+        profile_id = profile_json.get("id", None)
+
+        name = profile_json.get("full_name", None)
+        if name is None:
+            name = "unknown"
+
+        nickname = profile_json.get("username", None)
+        if nickname is None:
+            nickname = "unknown"
+
+        bio = profile_json.get("biography", None)
+        if bio is None:
+            bio = "No biography"
+
+        post_count = profile_json.get("posts_count", -1)
+        if post_count is None:
+            post_count = -1
+
+        followers_count = profile_json.get("followers_count", -1)
+        if followers_count is None:
+            followers_count = -1
+
+        following_count = profile_json.get("followings_count", -1)
+        if following_count is None:
+            following_count = -1
+
+        business = profile_json.get("is_business_account", "unknown")
+        if business is None:
+            business = "unknown"
+
+        private = profile_json.get("is_private", "unknown")
+        if private is None:
+            private = "unknown"
+
+        verified = profile_json.get("is_verified", "unknown")
+        if verified is None:
+            verified = "unknown"
+
+        return profile_id, name, nickname, bio, post_count, followers_count, following_count, business, private, verified
+
     def get_post_by_id(self, post_id):
         pass
 
