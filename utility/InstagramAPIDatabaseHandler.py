@@ -32,8 +32,6 @@ class InstagramAPIDatabaseHandler:
 
         # add the profile to the database
         self._insert_into_profile_with_engagement_table(table_name, profile_tuple)
-        # close connection
-        self._close_connection()
 
     def _insert_into_profile_table(self, table_name, profile_json):
         insert_query = f"""INSERT INTO {table_name} (ID, Name, Nickname, Bio, Post_Count, Follower_Count, Following_Count, Is_Business, Is_Private, Is_Verified)

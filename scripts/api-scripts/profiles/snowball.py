@@ -138,8 +138,10 @@ def calculate_profiles_engagement(profiles_df):
         # scanning all posts to discover who interacted with same profile id
         for post in profile_posts_lst:
             # adding the post engagement to the profile total engagement in the last month
-            profile_engagement_during_last_month += post['likes_count']
-            profile_engagement_during_last_month += post['comments_count']
+            if post['likes_count'] is not None:
+                profile_engagement_during_last_month += post['likes_count']
+            if post['comments_count'] is not None:
+                profile_engagement_during_last_month += post['comments_count']
 
         # updating profile engagement in relevant dict
         profiles_amount_of_posts_last_month_dict[profile_id] = len(profile_posts_lst)
