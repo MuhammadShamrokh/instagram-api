@@ -16,7 +16,7 @@ class Data365Connector:
     comment_data_fetch_base_url = 'https://api.data365.co/v1.1/instagram/comment/{comment_id}'
     comments_replies_fetch_base_url = 'https://api.data365.co/v1.1/instagram/comment/{comment_id}/replies'
 
-    def get_profile_data_by_id(self, profile_id):
+    def get_profile_data_by_id(self, profile_id, cached_data=False):
         profile_data = None
 
         # sending update task
@@ -30,20 +30,29 @@ class Data365Connector:
 
             if is_update_task_done_with_success:
                 # fetching profile data
-                fetch_data_url = self.profile_task_base_url + str(profile_id)
-                fetch_query_params = {"access_token": Data365Connector.api_access_token}
-                # sending GET request to extract the data from the databases
-                data_fetch_response = self._get_stored_data(fetch_data_url, fetch_query_params)
-                response_dict = json.loads(data_fetch_response.text)
+                profile_data = self.get_cached_profile_data(profile_id)
 
-                if data_fetch_response.status_code == 200:
-                    profile_data = response_dict['data']
-                else:
-                    logger.warning("Data365Connector: GET profile "+str(profile_id)+" data request has failed, error: " + str(response_dict["error"]))
             else:
                 logger.warning("Data365Connector: Caching profile "+str(profile_id)+" data into databases process failed!")
         else:
             logger.warning("Data365Connector: Could not start profile "+str(profile_id)+" update task, error: "+str(json.loads(update_task_response.text)["error"]))
+
+        return profile_data
+
+    def get_cached_profile_data(self, profile_id):
+        profile_data = None
+        fetch_data_url = self.profile_task_base_url + str(profile_id)
+        fetch_query_params = {"access_token": Data365Connector.api_access_token}
+        # sending GET request to extract the data from the databases
+        data_fetch_response = self._get_stored_data(fetch_data_url, fetch_query_params)
+        response_dict = json.loads(data_fetch_response.text)
+
+        if data_fetch_response.status_code == 200:
+            profile_data = response_dict['data']
+        else:
+            logger.warning(
+                "Data365Connector: GET profile " + str(profile_id) + " data request has failed, error: " + str(
+                    response_dict["error"]))
 
         return profile_data
 
@@ -123,6 +132,12 @@ class Data365Connector:
         else:
             update_response_body_dict = json.loads(update_response.text)
             logger.warning("POST request has failed, error: " + str(update_response_body_dict["error"]))
+
+        return posts_list
+
+    def get_cached_profile_posts(self, profile_id, max_posts, from_date):
+        get_posts_data_url = self.profile_task_base_url + str(profile_id) + "/feed/posts"
+        posts_list = self._fetch_data_return_list("Posts", get_posts_data_url, from_date)
 
         return posts_list
 

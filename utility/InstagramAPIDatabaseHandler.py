@@ -15,14 +15,14 @@ class InstagramAPIDatabaseHandler:
         self.cursor.execute("SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
         # if table doesn't exist, we add the table to database
         if self.cursor.fetchone()[0] == 0:
-            self._create_new_table_in_db(table_name)
+            self._create_new_profile_table_in_db(table_name)
 
         # add the profile to the database
-        self._insert_into_table(table_name, profile_json)
+        self._insert_into_profile_table(table_name, profile_json)
         # close connection
         self._close_connection()
 
-    def _insert_into_table(self, table_name, profile_json):
+    def _insert_into_profile_table(self, table_name, profile_json):
         insert_query = f"""INSERT INTO {table_name} (ID, Name, Nickname, Bio, Post_Count, Follower_Count, Following_Count, Is_Business, Is_Private, Is_Verified)
                                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
 
@@ -37,7 +37,7 @@ class InstagramAPIDatabaseHandler:
                 "DatabaseHandler: insertion was failed, " + profile_json["username"] + " profile id already exists in the database -Primary key.")
             self.connector.rollback()  # Rollback the transaction
 
-    def _create_new_table_in_db(self, table_name):
+    def _create_new_profile_table_in_db(self, table_name):
         self.cursor.execute(f"""CREATE TABLE IF NOT EXISTS {table_name} (
                                             ID text PRIMARY KEY,
                                             Name text,
