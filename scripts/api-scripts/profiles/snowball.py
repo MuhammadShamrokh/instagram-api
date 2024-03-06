@@ -3,6 +3,7 @@ from APIConnectors.Data365Connector import Data365Connector
 from datetime import datetime, timedelta
 from loggers.Logger import logger
 import pandas as pd
+import os
 
 
 # ---------------- URLs ---------------------------
@@ -81,6 +82,7 @@ def snowball(profiles_df):
                     # saving id in a file (incase program crash)
                     with open(new_profiles_id_file_url, 'a') as profiles_id_file:
                         profiles_id_file.write(comment_owner_id)
+                        profiles_id_file.write(os.linesep)
 
             logger.info(str(new_profiles_found_from_post_comments)+" new profiles were found while scanning post "+str(post_id)+" comments")
         
