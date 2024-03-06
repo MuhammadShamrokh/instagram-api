@@ -12,9 +12,9 @@ class Data365Connector:
     hashtag_search_update_base_url = "https://api.data365.co/v1.1/instagram/tag/{tag_id}/update"
     hashtag_search_fetch_data_base_url = 'https://api.data365.co/v1.1/instagram/tag/{tag_id}'
     # api post's URL
-    post_update_base_url = 'https://api.data365.co/v1.1/instagram/post/{post_id}/update'
-    comment_data_fetch_base_url = 'https://api.data365.co/v1.1/instagram/comment/{comment_id}'
-    comments_replies_fetch_base_url = 'https://api.data365.co/v1.1/instagram/comment/{comment_id}/replies'
+    post_task_base_url = 'https://api.data365.co/v1.1/instagram/post/'
+    # comment_data_fetch_base_url = 'https://api.data365.co/v1.1/instagram/comment/{comment_id}'
+    # comments_replies_fetch_base_url = 'https://api.data365.co/v1.1/instagram/comment/{comment_id}/replies'
 
     def get_profile_data_by_id(self, profile_id, cached_data=False):
         profile_data = None
@@ -41,62 +41,26 @@ class Data365Connector:
 
     def get_cached_profile_data(self, profile_id):
         profile_data = None
-        fetch_data_url = self.profile_task_base_url + str(profile_id)
-        fetch_query_params = {"access_token": Data365Connector.api_access_token}
-        # sending GET request to extract the data from the databases
-        data_fetch_response = self._get_stored_data(fetch_data_url, fetch_query_params)
-        response_dict = json.loads(data_fetch_response.text)
 
-        if data_fetch_response.status_code == 200:
-            profile_data = response_dict['data']
-        else:
-            logger.warning(
-                "Data365Connector: GET profile " + str(profile_id) + " data request has failed, error: " + str(
-                    response_dict["error"]))
+        try:
+            fetch_data_url = self.profile_task_base_url + str(profile_id)
+            fetch_query_params = {"access_token": Data365Connector.api_access_token}
+            # sending GET request to extract the data from the databases
+            data_fetch_response = self._get_stored_data(fetch_data_url, fetch_query_params)
+            response_dict = json.loads(data_fetch_response.text)
+
+            if data_fetch_response.status_code == 200:
+                profile_data = response_dict['data']
+            else:
+                logger.warning(
+                    "Data365Connector: GET profile " + str(profile_id) + " data request has failed, error: " + str(
+                        response_dict["error"]))
+        except Exception:
+            logger.warning("Something went wrong while fetching profile "+str(profile_id)+" data!")
 
         return profile_data
 
-    def get_profile_data_tuple_from_json(self, profile_json):
 
-        profile_id = profile_json.get("id", None)
-
-        name = profile_json.get("full_name", None)
-        if name is None:
-            name = "unknown"
-
-        nickname = profile_json.get("username", None)
-        if nickname is None:
-            nickname = "unknown"
-
-        bio = profile_json.get("biography", None)
-        if bio is None:
-            bio = "No biography"
-
-        post_count = profile_json.get("posts_count", -1)
-        if post_count is None:
-            post_count = -1
-
-        followers_count = profile_json.get("followers_count", -1)
-        if followers_count is None:
-            followers_count = -1
-
-        following_count = profile_json.get("followings_count", -1)
-        if following_count is None:
-            following_count = -1
-
-        business = profile_json.get("is_business_account", "unknown")
-        if business is None:
-            business = "unknown"
-
-        private = profile_json.get("is_private", "unknown")
-        if private is None:
-            private = "unknown"
-
-        verified = profile_json.get("is_verified", "unknown")
-        if verified is None:
-            verified = "unknown"
-
-        return profile_id, name, nickname, bio, post_count, followers_count, following_count, business, private, verified
 
     def get_post_by_id(self, post_id):
         pass
@@ -146,7 +110,7 @@ class Data365Connector:
         comments_list = list()
 
         # url and query params to init an update task
-        update_url = self.post_update_base_url + str(post_id) + "/update"
+        update_url = self.post_task_base_url + str(post_id) + "/update"
         # query params for post request
         update_query_params = {"from_date": from_date, "load_comments": True, "max_posts": max_comments,
                                "access_token": self.api_access_token}
@@ -159,9 +123,9 @@ class Data365Connector:
             data_cached = self._wait_for_update_task_to_finish(update_url, access_token_query_params)
             # data was cached in API
             if data_cached:
-                get_comments_data_url = self.post_update_base_url + str(post_id) + "/comments"
+                get_comments_data_url = self.post_task_base_url + str(post_id) + "/comments"
 
-                posts_list = self._fetch_data_return_list("comments", get_comments_data_url, from_date)
+                comments_list = self._fetch_data_return_list("comments", get_comments_data_url, from_date)
         else:
             update_response_body_dict = json.loads(update_response.text)
             logger.warning("POST request has failed, error: " + str(update_response_body_dict["error"]))
@@ -170,6 +134,48 @@ class Data365Connector:
 
     def get_comment_replies(self, comment_id):
         pass
+
+    def get_profile_data_tuple_from_json(self, profile_json):
+
+        profile_id = profile_json.get("id", None)
+
+        name = profile_json.get("full_name", None)
+        if name is None:
+            name = "unknown"
+
+        nickname = profile_json.get("username", None)
+        if nickname is None:
+            nickname = "unknown"
+
+        bio = profile_json.get("biography", None)
+        if bio is None:
+            bio = "No biography"
+
+        post_count = profile_json.get("posts_count", -1)
+        if post_count is None:
+            post_count = -1
+
+        followers_count = profile_json.get("followers_count", -1)
+        if followers_count is None:
+            followers_count = -1
+
+        following_count = profile_json.get("followings_count", -1)
+        if following_count is None:
+            following_count = -1
+
+        business = profile_json.get("is_business_account", "unknown")
+        if business is None:
+            business = "unknown"
+
+        private = profile_json.get("is_private", "unknown")
+        if private is None:
+            private = "unknown"
+
+        verified = profile_json.get("is_verified", "unknown")
+        if verified is None:
+            verified = "unknown"
+
+        return profile_id, name, nickname, bio, post_count, followers_count, following_count, business, private, verified
 
     def _fetch_data_return_list(self, data_type, url, from_date):
         cursor = None
@@ -217,7 +223,7 @@ class Data365Connector:
 
                 time.sleep(0.1)
         except Exception as e:
-            logger.warning("Something went wrong. (line 161)")
+            logger.warning("Something went wrong while fetching "+data_type+" data list")
 
         return data_list
 
