@@ -41,7 +41,7 @@ class InstagramAPIDatabaseHandler:
             # Execute the SQL query with the provided parameters
             self.cursor.execute(insert_query, self.api_connector.get_profile_data_tuple_from_json(profile_json))
             self.connector.commit()
-            logger.info("DatabaseHandler: "+profile_json.get("username") + "profile data was inserted to database successfully.")
+            logger.debug("DatabaseHandler: "+profile_json.get("username") + "profile data was inserted to database successfully.")
 
         # profile id already exists error
         except sqlite3.IntegrityError as e:
@@ -57,7 +57,7 @@ class InstagramAPIDatabaseHandler:
             # Execute the SQL query with the provided parameters
             self.cursor.execute(insert_query, profile_tuple)
             self.connector.commit()
-            logger.info("DatabaseHandler: "+profile_tuple[2] + "profile data was inserted to database successfully.")
+            logger.debug("DatabaseHandler: "+profile_tuple[2] + "profile data was inserted to database successfully.")
 
         # profile id already exists error
         except sqlite3.IntegrityError as e:

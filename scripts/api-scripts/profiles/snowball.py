@@ -7,9 +7,7 @@ import os
 
 # ---------------- URLs ---------------------------
 input_profiles_files_url = "../../../api-data/profiles/NFL/NFL-users-profile.csv"
-output_profiles_file_url = "../../../api-data/profiles/NFL/snowball-NFL-profiles.csv"
 user_profiles_db_url = "../../../api-data/profiles/profiles.db"
-new_profiles_id_file_url = "../../../api-data/profiles/NFL/snowball-NFL-profiles-id.csv"
 # ---------------- Objects ------------------------
 api_connector = Data365Connector()
 database_connector = InstagramAPIDatabaseHandler(user_profiles_db_url)
@@ -100,15 +98,10 @@ def find_store_new_profiles_from_comment(idx, comments_lst):
         if comment_owner_id not in new_profiles_set:
             # saving new profile data to dataframe and file
             extract_new_profile_data(idx, comment_owner_id)
-            # saving id in a file (incase program crash)
-            with open(new_profiles_id_file_url, 'a') as profiles_id_file:
-                profiles_id_file.write(comment_owner_id)
-                profiles_id_file.write(os.linesep)
-
-                # updating counters and data structures
-                logger.debug("New profile with id " + str(comment_owner_id) + " was found during snowball process")
-                new_profiles_found_from_post_comments += 1
-                new_profiles_set.add(comment_owner_id)
+            # updating counters and data structures
+            logger.debug("New profile with id " + str(comment_owner_id) + " was found during snowball process")
+            new_profiles_found_from_post_comments += 1
+            new_profiles_set.add(comment_owner_id)
 
     return new_profiles_found_from_post_comments
 
