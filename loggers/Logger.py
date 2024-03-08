@@ -9,7 +9,7 @@ logger.setLevel(logging.INFO)
 
 screen_handler = logging.StreamHandler()
 screen_handler.setFormatter(formatter)
-file_handler = logging.FileHandler('logs/snowball-logs.txt')
+file_handler = logging.FileHandler('C:/Users/muham/Desktop/VieRally/instagram-project/loggers/logs/snowball-logs.txt', 'a')
 file_handler.setFormatter(formatter)
 
 logger.addHandler(screen_handler)

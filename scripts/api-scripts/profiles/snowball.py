@@ -25,7 +25,7 @@ profiles_dfs_lst = []
 
 
 def init_dataframes_lst():
-    for _ in range(SNOWBALL_ITERATIONS):
+    for _ in range(SNOWBALL_ITERATIONS + 1):
         profiles_dfs_lst.append(pd.DataFrame(columns=['ID', 'Name', 'Nickname', 'Bio',
                                                       'Post_Count', 'Follower_Count', 'Following_Count',
                                                       'Is_Business', 'Is_Private', 'Is_Verified']))
@@ -51,7 +51,8 @@ def save_profile_with_engagement_in_db(profile_data, post_amount, engagement_cou
 def extract_new_profile_data(idx, profile_id):
 
     profile_json = api_connector.get_profile_data_by_id(profile_id)
-    profiles_dfs_lst[idx] = profiles_dfs_lst[idx].append({
+
+    new_profile_data = {
         'ID': profile_json.get("id", None),
         'Name': profile_json.get("full_name", None),
         'Nickname': profile_json.get("username", None),
@@ -61,7 +62,12 @@ def extract_new_profile_data(idx, profile_id):
         'Following_Count': profile_json.get("followings_count", -1),
         'Is_Business': profile_json.get("is_business_account", "unknown"),
         'Is_Private': profile_json.get("is_private", "unknown"),
-        'Is_Verified': profile_json.get("is_verified", "unknown")})
+        'Is_Verified': profile_json.get("is_verified", "unknown")}
+    # Convert the dictionary to a DataFrame
+    new_profile_df = pd.DataFrame([new_profile_data])
+
+    # Concatenate the original DataFrame and the new row DataFrame
+    profiles_dfs_lst[idx] = pd.concat([profiles_dfs_lst[idx], new_profile_df], ignore_index=True)
 
     # saving profile (without engagement) to table
     database_connector.save_profile_to_database("NFL_Profiles", profile_json)
@@ -117,11 +123,11 @@ def find_profiles_from_posts_comments_calculate_profile_engagement(idx, profile,
         # adding the post engagement to the profile total engagement in the last month
         if post['likes_count'] is not None:
             profile_engagement_during_period += post['likes_count']
-        if post['likes_count'] is not None:
+        if post['comments_count'] is not None:
             profile_engagement_during_period += post['comments_count']
 
         logger.info(
-            "Fetching post " + str(post_id) + " comment's who was posted by " + str(profile['ID']) + ". (" + str(
+            "Fetching post " + str(post_id) + " comment's which was posted by " + str(profile['ID']) + ". (" + str(
                 j) + "/" + str(len(profile_posts_lst)) + ")")
         comments_lst = api_connector.get_post_comments(post_id, FROM_DATE, MAX_AMOUNT)
 
@@ -142,7 +148,7 @@ def snowball(profiles_df, idx=0):
 
         # fetching all profile posts from last month
         profile_posts_lst = api_connector.get_profile_posts(profile['ID'], MAX_AMOUNT, FROM_DATE)
-        logger.info("Profile " + str(profile['ID']) + " has posted " + str(len(profile_posts_lst)) + " posts in last month")
+        logger.info("Profile " + str(profile['ID']) + " has posted " + str(len(profile_posts_lst)) + " posts in the given period")
 
         # scanning profile posts to calculate engagement and find new profiles
         profile_engagement_during_period = find_profiles_from_posts_comments_calculate_profile_engagement(idx, profile, profile_posts_lst)
