@@ -14,16 +14,24 @@ new_profiles_id_file_url = "../../../api-data/profiles/NFL/snowball-NFL-profiles
 api_connector = Data365Connector()
 database_connector = InstagramAPIDatabaseHandler(user_profiles_db_url)
 # ---------------- CONSTS -------------------------
-SNOWBALL_ITERATIONS = 2
+SNOWBALL_ITERATIONS = 1
 MAX_AMOUNT = 100
+# calculating one week ago date
+FROM_DATE = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
 # ---------------- Data structure -----------------
 # a set to store all the new profiles that were found during snowball (set to prevent duplicates)
 new_profiles_set = set()
-# a dictionary to store amount of posts in last month for each profile
-profiles_amount_of_posts_last_month_dict = dict()
-profile_engagement_last_month_dict = dict()
+
 # array of dataframes to store data of the new profile found in each snowball iteration
 profiles_dfs_lst = []
+
+
+def init_dataframes_lst():
+    for _ in range(SNOWBALL_ITERATIONS):
+        profiles_dfs_lst.append(pd.DataFrame(columns=['ID', 'Name', 'Nickname', 'Bio',
+                                                      'Post_Count', 'Follower_Count', 'Following_Count',
+                                                      'Is_Business', 'Is_Private', 'Is_Verified']))
+    logger.info("Profiles dataframe list was initialized successfully! ")
 
 
 def read_origin_profiles_df():
@@ -32,7 +40,7 @@ def read_origin_profiles_df():
     profiles_dfs_lst[0] = origin_profiles_df
 
 
-def save_profile_in_db(profile_data, post_amount, engagement_count):
+def save_profile_with_engagement_in_db(profile_data, post_amount, engagement_count):
     profile_data_tuple = (profile_data['ID'], profile_data['Name'], profile_data['Nickname'], profile_data['Bio'],
                           profile_data['Post_Count'], profile_data['Follower_Count'], profile_data['Following_Count'],
                           profile_data['Is_Business'], profile_data['Is_Private'], profile_data['Is_Verified'],
@@ -42,68 +50,7 @@ def save_profile_in_db(profile_data, post_amount, engagement_count):
                                                                       profile_data_tuple)
 
 
-def snowball(profiles_df, idx=0):
-    current_snowball_new_profiles_id_list = list()
-
-    # scanning all profiles to snowball
-    for i, profile in profiles_df.iterrows():
-        # profile engagement is the number of likes and comments his posts has 
-        profile_engagement_during_last_month = 0
-
-        logger.info(
-            "Snowballing profile with " + str(profile['ID']) + " id. (" + str(i) + "/" + str(len(profiles_df)) + ")")
-        # fetching all profile posts from last month
-        one_month_ago_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
-        profile_posts_lst = api_connector.get_profile_posts(profile['ID'], MAX_AMOUNT, one_month_ago_date)
-        logger.info(
-            "Profile " + str(profile['ID']) + " has posted " + str(len(profile_posts_lst)) + " posts in last month")
-        # scanning all posts to discover who interacted with same profile id
-        for j, post in enumerate(profile_posts_lst):
-            post_id = post['id']
-            new_profiles_found_from_post_comments = 0
-            # adding the post engagement to the profile total engagement in the last month
-            if post['likes_count'] is not None:
-                profile_engagement_during_last_month += post['likes_count']
-            if post['likes_count'] is not None:
-                profile_engagement_during_last_month += post['comments_count']
-
-            logger.info(
-                "Fetching data for post " + str(post_id) + " who was posted by " + str(profile['ID']) + ". (" + str(
-                    j) + "/" + str(len(profile_posts_lst)) + ")")
-            comments_lst = api_connector.get_post_comments(post_id, one_month_ago_date, MAX_AMOUNT)
-
-            # scanning comments to store owner id of each comment
-            for comment in comments_lst:
-                comment_owner_id = comment['owner_id']
-                # checking if the profile id wasn't found before
-                if comment_owner_id not in new_profiles_set:
-                    logger.debug("New profile with id " + str(comment_owner_id) + " was found during snowball process")
-                    new_profiles_found_from_post_comments += 1
-                    current_snowball_new_profiles_id_list.append(comment_owner_id)
-                    new_profiles_set.add(comment_owner_id)
-                    # saving new profile data to dataframe and file
-                    extract_new_profile_data(idx, comment_owner_id)
-                    # saving id in a file (incase program crash)
-                    with open(new_profiles_id_file_url, 'a') as profiles_id_file:
-                        profiles_id_file.write(comment_owner_id)
-                        profiles_id_file.write(os.linesep)
-
-            logger.info(
-                str(new_profiles_found_from_post_comments) + " new profiles were found while scanning post " + str(
-                    post_id) + " comments")
-
-        # storing profile engagement and amount of posts in relevant dicts
-        profiles_amount_of_posts_last_month_dict[profile['ID']] = len(profile_posts_lst)
-        profile_engagement_last_month_dict[profile['ID']] = profile_engagement_during_last_month
-
-        # saving profile with engagement data in a database
-        save_profile_in_db(profile, len(profile_posts_lst), profile_engagement_during_last_month)
-
-    return current_snowball_new_profiles_id_list
-
-
 def extract_new_profile_data(idx, profile_id):
-    # init an empty dataframe
 
     profile_json = api_connector.get_profile_data_by_id(profile_id)
     profiles_dfs_lst[idx] = profiles_dfs_lst[idx].append({
@@ -122,18 +69,15 @@ def extract_new_profile_data(idx, profile_id):
     database_connector.save_profile_to_database("NFL_Profiles", profile_json)
 
 
-def calculate_profiles_engagement(profiles_df):
-    # extracting profiles id from received dataframe
-    profiles_id_lst = list(profiles_df['ID'])
-
-    for idx, profile_id in enumerate(profiles_id_lst):
+def calculate_profiles_engagement_store_in_db(profiles_df):
+    for idx, profile in profiles_df.iterrows():
+        profile_id = profile['ID']
         profile_engagement_during_last_month = 0
 
         logger.info("calculating profile with " + str(profile_id) + " id engagement. (" + str(idx) + "/" + str(
-            len(profiles_id_lst)) + ")")
+            len(profiles_df)) + ")")
         # fetching all profile posts from last month
-        one_month_ago_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
-        profile_posts_lst = api_connector.get_profile_posts(profile_id, MAX_AMOUNT, one_month_ago_date)
+        profile_posts_lst = api_connector.get_profile_posts(profile_id, MAX_AMOUNT, FROM_DATE)
 
         # scanning all posts to discover who interacted with same profile id
         for post in profile_posts_lst:
@@ -143,23 +87,75 @@ def calculate_profiles_engagement(profiles_df):
             if post['comments_count'] is not None:
                 profile_engagement_during_last_month += post['comments_count']
 
-        # updating profile engagement in relevant dict
-        profiles_amount_of_posts_last_month_dict[profile_id] = len(profile_posts_lst)
-        profile_engagement_last_month_dict[profile_id] = profile_engagement_during_last_month
-
-    # updating profiles dict with engagement columns
-    profiles_df['Last_Month_Posts'] = profiles_df['ID'].map(profiles_amount_of_posts_last_month_dict)
-    profiles_df['Last_Month_Engagement'] = profiles_df['ID'].map(profile_engagement_last_month_dict)
-
-    return profiles_df
+        save_profile_with_engagement_in_db(profile, len(profile_posts_lst), profile_engagement_during_last_month)
 
 
-def init_dataframes_lst():
-    for _ in range(SNOWBALL_ITERATIONS):
-        profiles_dfs_lst.append(pd.DataFrame(columns=['ID', 'Name', 'Nickname', 'Bio',
-                                                      'Post_Count', 'Follower_Count', 'Following_Count',
-                                                      'Is_Business', 'Is_Private', 'Is_Verified']))
-    logger.info("Profiles dataframe list was initialized successfully! ")
+def find_store_new_profiles_from_comment(idx, comments_lst):
+    new_profiles_found_from_post_comments = 0
+
+    for comment in comments_lst:
+        comment_owner_id = comment['owner_id']
+
+        # checking if the profile id wasn't found before
+        if comment_owner_id not in new_profiles_set:
+            # saving new profile data to dataframe and file
+            extract_new_profile_data(idx, comment_owner_id)
+            # saving id in a file (incase program crash)
+            with open(new_profiles_id_file_url, 'a') as profiles_id_file:
+                profiles_id_file.write(comment_owner_id)
+                profiles_id_file.write(os.linesep)
+
+                # updating counters and data structures
+                logger.debug("New profile with id " + str(comment_owner_id) + " was found during snowball process")
+                new_profiles_found_from_post_comments += 1
+                new_profiles_set.add(comment_owner_id)
+
+    return new_profiles_found_from_post_comments
+
+
+def find_profiles_from_posts_comments_calculate_profile_engagement(idx, profile, profile_posts_lst):
+    # profile engagement is the number of likes and comments his posts has
+    profile_engagement_during_period = 0
+
+    # scanning all posts to discover who interacted with same profile id
+    for j, post in enumerate(profile_posts_lst):
+        post_id = post['id']
+
+        # adding the post engagement to the profile total engagement in the last month
+        if post['likes_count'] is not None:
+            profile_engagement_during_period += post['likes_count']
+        if post['likes_count'] is not None:
+            profile_engagement_during_period += post['comments_count']
+
+        logger.info(
+            "Fetching post " + str(post_id) + " comment's who was posted by " + str(profile['ID']) + ". (" + str(
+                j) + "/" + str(len(profile_posts_lst)) + ")")
+        comments_lst = api_connector.get_post_comments(post_id, FROM_DATE, MAX_AMOUNT)
+
+        # scanning comments to find new profiles that interacted with current profile
+        new_profiles_found_from_post_comments = find_store_new_profiles_from_comment(idx, comments_lst)
+
+        logger.info(
+            str(new_profiles_found_from_post_comments) + " new profiles were found while scanning post " + str(
+                post_id) + " comments")
+    
+    return profile_engagement_during_period
+
+
+def snowball(profiles_df, idx=0):
+    # scanning all profiles to snowball
+    for i, profile in profiles_df.iterrows():
+        logger.info("Snowballing profile with " + str(profile['ID']) + " id. (" + str(i) + "/" + str(len(profiles_df)) + ")")
+
+        # fetching all profile posts from last month
+        profile_posts_lst = api_connector.get_profile_posts(profile['ID'], MAX_AMOUNT, FROM_DATE)
+        logger.info("Profile " + str(profile['ID']) + " has posted " + str(len(profile_posts_lst)) + " posts in last month")
+
+        # scanning profile posts to calculate engagement and find new profiles
+        profile_engagement_during_period = find_profiles_from_posts_comments_calculate_profile_engagement(idx, profile, profile_posts_lst)
+
+        # saving profile with engagement data in a database
+        save_profile_with_engagement_in_db(profile, len(profile_posts_lst), profile_engagement_during_period)
 
 
 def main():
@@ -173,16 +169,9 @@ def main():
         logger.info("Snowball iteration " + str(idx + 1) + " has began ...")
         # snowballing to get new list of profiles id
         snowball(profiles_dfs_lst[idx], idx + 1)
-        # adding profiles engagement to relevant profiles dataframe (we got this data after snowballing)
-        profiles_dfs_lst[idx]['Last_Month_Posts'] = profiles_dfs_lst[idx]['ID'].map(profiles_amount_of_posts_last_month_dict)
-        profiles_dfs_lst[idx]['Last_Month_Engagement'] = profiles_dfs_lst[idx]['ID'].map(profile_engagement_last_month_dict)
-
+        
     # calculating the engagement of profiles that were found in the last iteration (we didn't snowball to discover engagement)
-    profiles_dfs_lst[SNOWBALL_ITERATIONS] = calculate_profiles_engagement(profiles_dfs_lst[SNOWBALL_ITERATIONS])
-
-    # merging all dataframe and saving the result into a csv file
-    result_df = pd.concat(profiles_dfs_lst, ignore_index=True)
-    result_df.to_csv(output_profiles_file_url)
+    calculate_profiles_engagement_store_in_db(profiles_dfs_lst[SNOWBALL_ITERATIONS])
 
 
 if __name__ == "__main__":

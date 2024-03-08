@@ -60,8 +60,6 @@ class Data365Connector:
 
         return profile_data
 
-
-
     def get_post_by_id(self, post_id):
         pass
 
