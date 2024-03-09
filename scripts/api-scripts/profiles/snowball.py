@@ -14,6 +14,7 @@ database_connector = InstagramAPIDatabaseHandler(user_profiles_db_url)
 # ---------------- CONSTS -------------------------
 SNOWBALL_ITERATIONS = 1
 MAX_AMOUNT = 100
+THRESHOLD = 13
 # calculating one week ago date
 FROM_DATE = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
 # ---------------- Data structure -----------------
@@ -35,7 +36,7 @@ def init_dataframes_lst():
 def read_origin_profiles_df():
     origin_profiles_df = pd.read_csv(input_profiles_files_url)
     # adding the init dataframe to the dataframe list
-    profiles_dfs_lst[0] = origin_profiles_df
+    profiles_dfs_lst[0] = origin_profiles_df.iloc[THRESHOLD:]
 
 
 def save_profile_with_engagement_in_db(profile_data, post_amount, engagement_count):
@@ -51,26 +52,26 @@ def save_profile_with_engagement_in_db(profile_data, post_amount, engagement_cou
 def extract_new_profile_data(idx, profile_id):
 
     profile_json = api_connector.get_profile_data_by_id(profile_id)
+    if profile_json is not None:
+        new_profile_data = {
+            'ID': profile_json.get("id", None),
+            'Name': profile_json.get("full_name", None),
+            'Nickname': profile_json.get("username", None),
+            'Bio': profile_json.get("biography", None),
+            'Post_Count': profile_json.get("posts_count", -1),
+            'Follower_Count': profile_json.get("followers_count", -1),
+            'Following_Count': profile_json.get("followings_count", -1),
+            'Is_Business': profile_json.get("is_business_account", "unknown"),
+            'Is_Private': profile_json.get("is_private", "unknown"),
+            'Is_Verified': profile_json.get("is_verified", "unknown")}
+        # Convert the dictionary to a DataFrame
+        new_profile_df = pd.DataFrame([new_profile_data])
 
-    new_profile_data = {
-        'ID': profile_json.get("id", None),
-        'Name': profile_json.get("full_name", None),
-        'Nickname': profile_json.get("username", None),
-        'Bio': profile_json.get("biography", None),
-        'Post_Count': profile_json.get("posts_count", -1),
-        'Follower_Count': profile_json.get("followers_count", -1),
-        'Following_Count': profile_json.get("followings_count", -1),
-        'Is_Business': profile_json.get("is_business_account", "unknown"),
-        'Is_Private': profile_json.get("is_private", "unknown"),
-        'Is_Verified': profile_json.get("is_verified", "unknown")}
-    # Convert the dictionary to a DataFrame
-    new_profile_df = pd.DataFrame([new_profile_data])
+        # Concatenate the original DataFrame and the new row DataFrame
+        profiles_dfs_lst[idx] = pd.concat([profiles_dfs_lst[idx], new_profile_df], ignore_index=True)
 
-    # Concatenate the original DataFrame and the new row DataFrame
-    profiles_dfs_lst[idx] = pd.concat([profiles_dfs_lst[idx], new_profile_df], ignore_index=True)
-
-    # saving profile (without engagement) to table
-    database_connector.save_profile_to_database("NFL_Profiles", profile_json)
+        # saving profile (without engagement) to table
+        database_connector.save_profile_to_database("NFL_Profiles", profile_json)
 
 
 def calculate_profiles_engagement_store_in_db(profiles_df):
@@ -95,7 +96,7 @@ def calculate_profiles_engagement_store_in_db(profiles_df):
 
 
 def find_store_new_profiles_from_comment(idx, comments_lst):
-    new_profiles_found_from_post_comments = 0
+    new_profiles_found_from_post_comments_count = 0
 
     for comment in comments_lst:
         comment_owner_id = comment['owner_id']
@@ -106,10 +107,10 @@ def find_store_new_profiles_from_comment(idx, comments_lst):
             extract_new_profile_data(idx, comment_owner_id)
             # updating counters and data structures
             logger.debug("New profile with id " + str(comment_owner_id) + " was found during snowball process")
-            new_profiles_found_from_post_comments += 1
+            new_profiles_found_from_post_comments_count += 1
             new_profiles_set.add(comment_owner_id)
 
-    return new_profiles_found_from_post_comments
+    return new_profiles_found_from_post_comments_count
 
 
 def find_profiles_from_posts_comments_calculate_profile_engagement(idx, profile, profile_posts_lst):
@@ -128,14 +129,14 @@ def find_profiles_from_posts_comments_calculate_profile_engagement(idx, profile,
 
         logger.info(
             "Fetching post " + str(post_id) + " comment's which was posted by " + str(profile['ID']) + ". (" + str(
-                j) + "/" + str(len(profile_posts_lst)) + ")")
+                j+1) + "/" + str(len(profile_posts_lst)) + ")")
         comments_lst = api_connector.get_post_comments(post_id, FROM_DATE, MAX_AMOUNT)
 
         # scanning comments to find new profiles that interacted with current profile
-        new_profiles_found_from_post_comments = find_store_new_profiles_from_comment(idx, comments_lst)
+        new_profiles_found_from_post_comments_count = find_store_new_profiles_from_comment(idx, comments_lst)
 
         logger.info(
-            str(new_profiles_found_from_post_comments) + " new profiles were found while scanning post " + str(
+            str(new_profiles_found_from_post_comments_count) + " new profiles were found while scanning post " + str(
                 post_id) + " comments")
     
     return profile_engagement_during_period
@@ -144,7 +145,7 @@ def find_profiles_from_posts_comments_calculate_profile_engagement(idx, profile,
 def snowball(profiles_df, idx=0):
     # scanning all profiles to snowball
     for i, profile in profiles_df.iterrows():
-        logger.info("Snowballing profile with " + str(profile['ID']) + " id. (" + str(i) + "/" + str(len(profiles_df)) + ")")
+        logger.info("Snowballing profile with " + str(profile['ID']) + " id. (" + str(i+1) + "/" + str(len(profiles_df)+THRESHOLD) + ")")
 
         # fetching all profile posts from last month
         profile_posts_lst = api_connector.get_profile_posts(profile['ID'], MAX_AMOUNT, FROM_DATE)

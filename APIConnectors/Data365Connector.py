@@ -9,7 +9,7 @@ class Data365Connector:
 
     # api profile's URL
     profile_task_base_url = 'https://api.data365.co/v1.1/instagram/profile/'
-    hashtag_search_update_base_url = "https://api.data365.co/v1.1/instagram/tag/{tag_id}/update"
+    hashtag_search_update_base_url = "https://api.data365.co/v1.1/instagram/tag/"
     hashtag_search_fetch_data_base_url = 'https://api.data365.co/v1.1/instagram/tag/{tag_id}'
     # api post's URL
     post_task_base_url = 'https://api.data365.co/v1.1/instagram/post/'
@@ -66,8 +66,30 @@ class Data365Connector:
     def get_comment_by_id(self, comment_id):
         pass
 
-    def search_posts_by_hashtag(self, hashtag):
-        pass
+    def search_posts_by_hashtag(self, hashtag, max_posts, from_date, to_date):
+        posts_lst = list()
+
+        # sending update task
+        update_url = self.hashtag_search_update_base_url + hashtag + "/update"
+        update_query_params = {'from_date': from_date, 'max_posts': max_posts, 'load_posts_data': True, 'access_token': Data365Connector.api_access_token}
+        update_task_response = self._create_update_request(update_url, update_query_params)
+
+        if update_task_response.status_code == 202:
+            # waiting till the update task ends
+            token_query_params = {'access_token': Data365Connector.api_access_token}
+            is_update_task_done_with_success = self._wait_for_update_task_to_finish(update_url, token_query_params)
+
+            if is_update_task_done_with_success:
+                logger.info('Data365Connector: the amount of posts that include '+hashtag+" hashtag is "+str(self._get_amount_of_posts_for_hashtag(hashtag)))
+                # fetching all posts that were found in hashtag search
+                get_posts_url = self.hashtag_search_update_base_url + hashtag + '/posts'
+
+                # i stop here, my question for sarel : - how many posts do i need to fetch ?
+                #                                      - do i need to filter en posts only?
+                """{{API_BASE_URL}}{{API_VERSION}}/instagram/tag/:tag_id/posts?order_by=date_desc&max_page_size=50"""
+
+
+        return posts_lst
 
     def get_profile_posts(self, profile_id, max_posts, from_date):
         # list to insert profile posts into
@@ -97,7 +119,7 @@ class Data365Connector:
 
         return posts_list
 
-    def get_cached_profile_posts(self, profile_id, max_posts, from_date):
+    def get_cached_profile_posts(self, profile_id, from_date):
         get_posts_data_url = self.profile_task_base_url + str(profile_id) + "/feed/posts"
         posts_list = self._fetch_data_return_list("Posts", get_posts_data_url, from_date)
 
@@ -175,7 +197,7 @@ class Data365Connector:
 
         return profile_id, name, nickname, bio, post_count, followers_count, following_count, business, private, verified
 
-    def _fetch_data_return_list(self, data_type, url, from_date):
+    def _fetch_data_return_list(self, data_type, url, from_date, number_of_pages=0):
         cursor = None
         data_list = list()
         pages_count = 0
@@ -207,8 +229,8 @@ class Data365Connector:
                     # extracting cursor
                     page_info = data_response_body_dict["data"]["page_info"]
                     pages_count = pages_count + 1
-                    logger.debug("The " + str(pages_count) + " page of " + data_type + " information was saved")
-                    if page_info["has_next_page"]:
+                    logger.debug("The " + str(pages_count) + " page of " + data_type + " information was successfully read")
+                    if page_info["has_next_page"] and (pages_count < number_of_pages or number_of_pages == 0):
                         logger.debug(
                             "Theres another page of " + data_type + " information, going to send another get request.")
                         # there is another page of posts data, we get the cursor to use in the next get request
@@ -224,6 +246,20 @@ class Data365Connector:
             logger.warning("Something went wrong while fetching "+data_type+" data list")
 
         return data_list
+
+    def _get_amount_of_posts_for_hashtag(self, hashtag):
+        amount_of_posts = 0
+
+        # sending data request
+        url = self.hashtag_search_update_base_url + hashtag
+        token_query_param = {'access_token': Data365Connector.api_access_token}
+        response = self._get_stored_data(url, token_query_param)
+
+        if response.status_code == 200:
+            if response is not None:
+                amount_of_posts = response['data']['posts_count']
+
+        return amount_of_posts
 
     def _create_update_request(self, url, query_params):
         response = requests.post(url, params=query_params)
