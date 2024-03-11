@@ -33,7 +33,7 @@ class Data365Connector:
                 profile_data = self.get_cached_profile_data(profile_id)
 
             else:
-                logger.warning("Data365Connector: Caching profile "+str(profile_id)+" data into databases process failed!")
+                logger.warning("Data365Connector: Caching profile "+str(profile_id)+" data into Data365 API databases process failed!")
         else:
             logger.warning("Data365Connector: Could not start profile "+str(profile_id)+" update task, error: "+str(json.loads(update_task_response.text)["error"]))
 
@@ -257,7 +257,8 @@ class Data365Connector:
 
         if response.status_code == 200:
             if response is not None:
-                amount_of_posts = response['data']['posts_count']
+                response_content_dict = json.loads(response.text)
+                amount_of_posts = response_content_dict['data']['posts_count']
 
         return amount_of_posts
 

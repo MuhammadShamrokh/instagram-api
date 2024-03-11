@@ -14,7 +14,7 @@ database_connector = InstagramAPIDatabaseHandler(user_profiles_db_url)
 # ---------------- CONSTS -------------------------
 SNOWBALL_ITERATIONS = 1
 MAX_AMOUNT = 100
-THRESHOLD = 13
+THRESHOLD = 87
 # calculating one week ago date
 FROM_DATE = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
 # ---------------- Data structure -----------------
