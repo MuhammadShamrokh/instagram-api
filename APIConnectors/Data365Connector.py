@@ -35,7 +35,7 @@ class Data365Connector:
             else:
                 logger.warning("Data365Connector: Caching profile "+str(profile_id)+" data into Data365 API databases process failed!")
         else:
-            logger.warning("Data365Connector: Could not start profile "+str(profile_id)+" update task, error: "+str(json.loads(update_task_response.text)["error"]))
+            logger.warning("Data365Connector: Could not start profile "+str(profile_id)+" update task")
 
         return profile_data
 
@@ -53,8 +53,7 @@ class Data365Connector:
                 profile_data = response_dict['data']
             else:
                 logger.warning(
-                    "Data365Connector: GET profile " + str(profile_id) + " data request has failed, error: " + str(
-                        response_dict["error"]))
+                    "Data365Connector: GET profile " + str(profile_id) + " data request has failed")
         except Exception:
             logger.warning("Something went wrong while fetching profile "+str(profile_id)+" data!")
 
@@ -115,7 +114,7 @@ class Data365Connector:
                 posts_list = self._fetch_data_return_list("Posts", get_posts_data_url, from_date)
         else:
             update_response_body_dict = json.loads(update_response.text)
-            logger.warning("POST request has failed, error: " + str(update_response_body_dict["error"]))
+            logger.warning("Data365Connector: POST request to start update task for profile "+str(profile_id)+" has failed")
 
         return posts_list
 
@@ -148,7 +147,7 @@ class Data365Connector:
                 comments_list = self._fetch_data_return_list("comments", get_comments_data_url, from_date)
         else:
             update_response_body_dict = json.loads(update_response.text)
-            logger.warning("POST request has failed, error: " + str(update_response_body_dict["error"]))
+            logger.warning("Data365Connector: POST request to update post "+str(post_id)+" comment's has failed")
 
         return comments_list
 
@@ -239,11 +238,11 @@ class Data365Connector:
                         logger.debug("This was the last page of " + data_type + " information.")
                         break
                 else:
-                    logger.warning("GET data request has failed, error: " + str(data_response_body_dict["error"]))
+                    logger.warning("Data365Connector: GET request to fetch "+data_type+" data has failed")
 
                 time.sleep(0.1)
         except Exception as e:
-            logger.warning("Something went wrong while fetching "+data_type+" data list")
+            logger.warning("Data365Connector: Something went wrong while fetching "+data_type+" data list")
 
         return data_list
 
@@ -292,7 +291,7 @@ class Data365Connector:
                         time.sleep(5)
                 else:  # GET status request failed
                     status_response_body_dict = json.loads(status_response.text)
-                    logger.warning("Data365Connector: GET status request has failed, error: " + str(status_response_body_dict["error"]))
+                    logger.warning("Data365Connector: GET request to check the update process status has failed")
                     break
         except Exception as e:
             data_cached = False
