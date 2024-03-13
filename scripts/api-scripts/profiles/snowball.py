@@ -6,7 +6,7 @@ import pandas as pd
 import os
 
 # ---------------- URLs ---------------------------
-input_profiles_files_url = "../../../api-data/profiles/NFL/NFL-users-profile.csv"
+input_profiles_files_url = "../../../api-data/profiles/NFL/seed-NFL-users-profile.csv"
 user_profiles_db_url = "../../../api-data/profiles/profiles.db"
 # ---------------- Objects ------------------------
 api_connector = Data365Connector()
@@ -80,7 +80,7 @@ def calculate_profiles_engagement_store_in_db(profiles_df):
         profile_engagement_during_last_month = 0
 
         logger.info("calculating profile with " + str(profile_id) + " id engagement. (" + str(idx) + "/" + str(
-            len(profiles_df)) + ")")
+            len(profiles_df)+THRESHOLD) + ")")
         # fetching all profile posts from last month
         profile_posts_lst = api_connector.get_profile_posts(profile_id, MAX_AMOUNT, FROM_DATE)
 
