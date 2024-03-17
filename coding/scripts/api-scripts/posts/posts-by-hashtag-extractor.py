@@ -10,8 +10,8 @@ api_connector = Data365Connector()
 database_connector = InstagramAPIDatabaseHandler(posts_db_url)
 # ---------------- CONSTS -------------------------
 hashtag_list = ['NFL']
-FROM_DATE = datetime(2023, 1, 1).date()
-TO_DATE = (FROM_DATE + timedelta(days=14)).strftime('%Y-%m-%d')
+FROM_DATE = (datetime.now() - timedelta(days=14)).strftime('%Y-%m-%d')
+TO_DATE = datetime.now()
 MAX_POSTS = 5
 
 
