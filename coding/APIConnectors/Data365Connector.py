@@ -14,8 +14,6 @@ class Data365Connector:
     hashtag_search_fetch_data_base_url = 'https://api.data365.co/v1.1/instagram/tag/{tag_id}'
     # api post's URL
     post_task_base_url = 'https://api.data365.co/v1.1/instagram/post/'
-    # comment_data_fetch_base_url = 'https://api.data365.co/v1.1/instagram/comment/{comment_id}'
-    # comments_replies_fetch_base_url = 'https://api.data365.co/v1.1/instagram/comment/{comment_id}/replies'
 
     def get_profile_data_by_id(self, profile_id):
         profile_data = None
@@ -66,7 +64,7 @@ class Data365Connector:
     def get_comment_by_id(self, comment_id):
         pass
 
-    def search_posts_by_hashtag(self, hashtag, max_posts, from_date, to_date):
+    def get_posts_by_hashtag(self, hashtag, max_posts, from_date, to_date=None, num_of_pages=5):
         posts_lst = list()
 
         # sending update task
@@ -88,7 +86,7 @@ class Data365Connector:
                 get_post_query_params = {'from_date': from_date, 'to_date': to_date, 'lang': 'en', "max_page_size": 100,
                                          'access_token': self.api_access_token}
 
-                posts_lst = self._fetch_data_return_list('posts', get_posts_url, get_post_query_params, number_of_pages=50)
+                posts_lst = self._fetch_data_return_list('posts', get_posts_url, get_post_query_params, number_of_pages=num_of_pages)
             else:
                 logger.warning("Data365Connector: Caching posts that include hashtag "+hashtag+" into Data365 API databases process failed!")
 
@@ -97,13 +95,13 @@ class Data365Connector:
 
         return posts_lst
 
-    def get_cached_hashtag_posts(self, hashtag, from_date, to_date=None):
+    def get_cached_hashtag_posts(self, hashtag, from_date, to_date=None, num_of_pages=5):
         # preparing url and query params
         get_posts_url = self.hashtag_search_update_base_url + hashtag + '/posts'
         get_post_query_params = {'from_date': from_date, 'to_date': to_date, 'lang': 'en', "max_page_size": 100,
                                  'access_token': self.api_access_token}
 
-        posts_lst = self._fetch_data_return_list('posts', get_posts_url, get_post_query_params, number_of_pages=50)
+        posts_lst = self._fetch_data_return_list('posts', get_posts_url, get_post_query_params, number_of_pages=num_of_pages)
 
         return posts_lst
 
