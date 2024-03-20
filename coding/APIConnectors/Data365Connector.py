@@ -105,7 +105,7 @@ class Data365Connector:
 
         return posts_lst
 
-    def get_profile_posts(self, profile_id, max_posts, from_date):
+    def get_posts_by_profile_id(self, profile_id, max_posts=10, from_date=None, to_date=None):
         # list to insert profile posts into
         posts_list = list()
 
@@ -125,7 +125,7 @@ class Data365Connector:
             # data was cached in API
             if data_cached:
                 get_posts_data_url = self.profile_task_base_url + str(profile_id) + "/feed/posts"
-                get_request_query_parameters = {"from_date": from_date, "order_by": "date_desc", "max_page_size": 100,
+                get_request_query_parameters = {"from_date": from_date, "to_date": to_date, "order_by": "date_desc", "max_page_size": 100,
                                                 "access_token": self.api_access_token}
 
                 posts_list = self._fetch_data_return_list("Posts", get_posts_data_url, get_request_query_parameters)

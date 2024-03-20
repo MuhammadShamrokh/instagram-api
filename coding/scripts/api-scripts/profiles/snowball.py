@@ -81,7 +81,7 @@ def calculate_profiles_engagement_store_in_db(profiles_df):
         logger.info("calculating profile with " + str(profile_id) + " id engagement. (" + str(idx) + "/" + str(
             len(profiles_df)+THRESHOLD) + ")")
         # fetching all profile posts from last month
-        profile_posts_lst = api_connector.get_profile_posts(profile_id, MAX_AMOUNT, FROM_DATE)
+        profile_posts_lst = api_connector.get_posts_by_profile_id(profile_id, MAX_AMOUNT, FROM_DATE)
 
         # scanning all posts to discover who interacted with same profile id
         for post in profile_posts_lst:
@@ -147,7 +147,7 @@ def snowball(profiles_df, idx=0):
         logger.info("Snowballing profile with " + str(profile['ID']) + " id. (" + str(i+1) + "/" + str(len(profiles_df)+THRESHOLD) + ")")
 
         # fetching all profile posts from last month
-        profile_posts_lst = api_connector.get_profile_posts(profile['ID'], MAX_AMOUNT, FROM_DATE)
+        profile_posts_lst = api_connector.get_posts_by_profile_id(profile['ID'], MAX_AMOUNT, FROM_DATE)
         logger.info("Profile " + str(profile['ID']) + " has posted " + str(len(profile_posts_lst)) + " posts in the given period")
 
         # scanning profile posts to calculate engagement and find new profiles
