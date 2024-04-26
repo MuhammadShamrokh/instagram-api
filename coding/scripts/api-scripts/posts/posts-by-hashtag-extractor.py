@@ -22,7 +22,7 @@ hashtag_list = ['Buffalo Bills', 'Miami Dolphins', 'New England Patriots', 'New 
 
 
 def main():
-    short_hashtag_list = hashtag_list[10:]
+    short_hashtag_list = hashtag_list[:]
 
     logger.info("Searching posts by hashtag process has began...")
     for hashtag in short_hashtag_list:

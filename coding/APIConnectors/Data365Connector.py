@@ -59,7 +59,49 @@ class Data365Connector:
         return profile_data
 
     def get_post_by_id(self, post_id):
-        pass
+        post_data = None
+
+        # sending update task
+        update_url = self.post_task_base_url + str(post_id) + "/update"
+        update_query_params = {"access_token": Data365Connector.api_access_token}
+        update_task_response = self._create_update_request(update_url, update_query_params)
+
+        if update_task_response.status_code == 202:
+            # waiting till the update task ends
+            is_update_task_done_with_success = self._wait_for_update_task_to_finish(update_url, update_query_params)
+
+            if is_update_task_done_with_success:
+                # fetching profile data
+                post_data = self.get_cached_post_data(post_id)
+
+            else:
+                logger.warning("Data365Connector: Caching post " + str(
+                    post_id) + " data into Data365 API databases process failed!")
+        else:
+            logger.warning("Data365Connector: Could not start post " + str(post_id) + " update task")
+
+        return post_data
+
+    def get_cached_post_data(self, post_id):
+        post_data = None
+
+        try:
+            fetch_data_url = self.post_task_base_url + str(post_id)
+            fetch_query_params = {"access_token": Data365Connector.api_access_token}
+            # sending GET request to extract the data from the databases
+            data_fetch_response = self._get_stored_data(fetch_data_url, fetch_query_params)
+            response_dict = json.loads(data_fetch_response.text)
+
+            if data_fetch_response.status_code == 200:
+                post_data = response_dict['data']
+            else:
+                logger.warning(
+                    "Data365Connector: GET post " + str(post_id) + " data request has failed")
+        except Exception:
+            logger.warning(
+                "Data365Connector: Something went wrong while fetching post " + str(post_id) + " data!")
+
+        return post_data
 
     def get_comment_by_id(self, comment_id):
         pass
@@ -239,6 +281,10 @@ class Data365Connector:
         if comments_count is None:
             comments_count = -1
 
+        has_video = post_json.get("is_video", -1)
+        if has_video is None:
+            has_video = -1
+
         publication_timestamp = post_json.get("timestamp", None)
         if publication_timestamp is None:
             publication_timestamp = "unknown"
@@ -250,7 +296,7 @@ class Data365Connector:
         if location_id is None:
             location_id = "unknown"
 
-        return post_id, caption, owner_id, owner_username, likes_count, comments_count, publication_date, publication_timestamp, location_id
+        return post_id, caption, owner_id, owner_username, likes_count, comments_count, has_video, publication_date, publication_timestamp, location_id
 
     def _fetch_data_return_list(self, data_type, url, query_params, number_of_pages=0):
         data_list = list()

@@ -56,6 +56,11 @@ class InstagramAPIDatabaseHandler:
         logger.debug(
             "DatabaseHandler: profile " + str(profile_id) + " was deleted from database successfully.")
 
+    def delete_database_table(self, table_name):
+        drop_table_query = f"DROP TABLE IF EXISTS {table_name};"
+        self.cursor.execute(drop_table_query)
+        self.connector.commit()
+
     def _insert_into_profile_table(self, table_name, profile_data_tuple):
         insert_query = f"""INSERT INTO {table_name} (ID, Name, Nickname, Bio, Post_Count, Follower_Count, Following_Count, Is_Business, Is_Private, Is_Verified)
                                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
@@ -89,8 +94,8 @@ class InstagramAPIDatabaseHandler:
             self.connector.rollback()  # Rollback the transaction
 
     def _insert_post_into_table(self, table_name, post_data_tuple):
-        insert_query = f"""INSERT INTO {table_name} (ID, Caption, Owner_ID, Owner_Username, Likes_Count, Comments_Count, Publication_Date, Publication_Timestamp, Location_ID)
-                                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+        insert_query = f"""INSERT INTO {table_name} (ID, Caption, Owner_ID, Owner_Username, Likes_Count, Comments_Count, Has_Video, Publication_Date, Publication_Timestamp, Location_ID)
+                                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
 
         try:
             # Execute the SQL query with the provided parameters
@@ -105,8 +110,8 @@ class InstagramAPIDatabaseHandler:
             self.connector.rollback()  # Rollback the transaction
 
     def _insert_post_by_hashtag_into_table(self, table_name, post_data_tuple):
-        insert_query = f"""INSERT INTO {table_name} (ID, Caption, Owner_ID, Owner_Username, Likes_Count, Comments_Count, Publication_Date, Publication_Timestamp, Location_ID, Hashtag)
-                                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+        insert_query = f"""INSERT INTO {table_name} (ID, Caption, Owner_ID, Owner_Username, Likes_Count, Comments_Count, Has_Video, Publication_Date, Publication_Timestamp, Location_ID, Hashtag)
+                                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
 
         try:
             # Execute the SQL query with the provided parameters
@@ -162,6 +167,7 @@ class InstagramAPIDatabaseHandler:
                                                             Owner_Username text,
                                                             Likes_Count integer,
                                                             Comments_Count integer,
+                                                            Has_Video integer,
                                                             publication_Date text,
                                                             Publication_Timestamp text,
                                                             Location_ID text)""")
@@ -176,6 +182,7 @@ class InstagramAPIDatabaseHandler:
                                                             Owner_Username text,
                                                             Likes_Count integer,
                                                             Comments_Count integer,
+                                                            Has_Video integer,
                                                             publication_Date text,
                                                             Publication_Timestamp text,
                                                             Location_ID text,
