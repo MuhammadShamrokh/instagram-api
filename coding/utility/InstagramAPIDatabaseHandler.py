@@ -12,6 +12,9 @@ class InstagramAPIDatabaseHandler:
         self._close_connection()
 
     def save_profile_to_database(self, table_name, profile_data_tuple):
+        if len(profile_data_tuple) == 0:
+            return
+
         # checking if table exist in database
         self.cursor.execute("SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
         # if table doesn't exist, we add the table to database
@@ -22,6 +25,9 @@ class InstagramAPIDatabaseHandler:
         self._insert_into_profile_table(table_name, profile_data_tuple)
 
     def save_profile_with_month_engagement_to_database(self, table_name, profile_tuple):
+        if len(profile_tuple) == 0:
+            return
+
         # checking if table exist in database
         self.cursor.execute("SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
         # if table doesn't exist, we add the table to database
@@ -32,6 +38,9 @@ class InstagramAPIDatabaseHandler:
         self._insert_into_profile_with_engagement_table(table_name, profile_tuple)
 
     def save_post_to_database(self, table_name, post_data_tuple, by_hashtag=False):
+        if len(post_data_tuple) == 0:
+            return
+
         # checking if table exist in database
         self.cursor.execute("SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
         # if table doesn't exist, we add the table to database

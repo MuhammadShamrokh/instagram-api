@@ -14,6 +14,8 @@ profiles_id_input_file = "../../../../data/api-data/posts-comments-replies/test-
 # ---------------- Objects ------------------------
 api_connector = Data365Connector()
 database_connector = InstagramAPIDatabaseHandler(posts_db_url)
+# ---------------- Variables ----------------------
+start_from = 150
 
 
 def get_posts_id_list():
@@ -23,7 +25,7 @@ def get_posts_id_list():
     """
     posts_df = pd.read_parquet(profiles_id_input_file)
 
-    return list(posts_df["ID"])[:5]
+    return list(posts_df["ID"])[start_from:]
 
 
 def download_and_save_post_media(post_json):
@@ -39,7 +41,7 @@ def download_and_save_post_media(post_json):
             download_media(url, filename=file_name)
             media_count = media_count + 1
 
-        logger.info("Downloaded " + str(media_count) + " image/video using " + str(post_id) + " post id.")
+        logger.info("Downloaded " + str(media_count) + " image/video using current post id.")
         # attached_carousel_media_urls includes the media that appears in attached_media_display_url and attached_video_url
         return
 
@@ -54,7 +56,7 @@ def download_and_save_post_media(post_json):
         file_name = str(post_id) + "_" + str(media_count)
         download_media(media_url, file_name)
 
-    logger.info("Downloaded "+str(media_count)+" image/video using "+str(post_id)+" post id.")
+    logger.info("Downloaded "+str(media_count)+" image/video using current post id.")
 
 
 def download_media(url, filename, folder=images_folder_url):
@@ -115,15 +117,18 @@ def main():
 
     # scanning posts id
     for idx, post_id in enumerate(posts_id_list):
-        logger.info("Extracting "+str(post_id)+" Post data using instagram API... ("+str(idx+1)+"/"+str(len(posts_id_list))+")")
+        logger.info("Extracting "+str(post_id)+" Post data using instagram API... ("+str(idx+1+start_from)+"/"+str(len(posts_id_list) + start_from)+")")
         # extracting post data json from instagram api
         post_data_json = api_connector.get_post_by_id(post_id)
         # saving post data into database
-        database_connector.save_post_to_database("Posts_Test_Set", api_connector.get_post_data_tuple_from_json(post_data_json))
-        # saving post media into media folder
-        download_and_save_post_media(post_data_json)
+        if post_data_json is not None:
+            database_connector.save_post_to_database("Posts_Test_Set", api_connector.get_post_data_tuple_from_json(post_data_json))
+            # saving post media into media folder
+            download_and_save_post_media(post_data_json)
+        else:
+            logger.warning("Received empty json while trying to extract current post data.")
 
 
 if __name__ == "__main__":
-    # main()
-    database_connector.delete_database_table("Posts_Test_Set")
+    main()
+

@@ -217,6 +217,8 @@ class Data365Connector:
         pass
 
     def get_profile_data_tuple_from_json(self, profile_json):
+        if profile_json is None:
+            return ()
 
         profile_id = profile_json.get("id", None)
 
@@ -259,6 +261,9 @@ class Data365Connector:
         return profile_id, name, nickname, bio, post_count, followers_count, following_count, business, private, verified
 
     def get_post_data_tuple_from_json(self, post_json):
+        if post_json is None:
+            return ()
+
         post_id = post_json.get("id", None)
 
         caption = post_json.get("text", None)
