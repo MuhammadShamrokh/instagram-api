@@ -6,16 +6,17 @@ import pandas as pd
 
 # ---------------- URLs ---------------------------
 input_profiles_files_url = "../../../../data/api-data/profiles/NFL/seed-NFL-users-profile.csv"
-user_profiles_db_url = "../../../../data/api-data/profiles/profiles.db"
+user_profiles_db_url = "./../../../../data/api-data/profiles/profiles.db"
 # ---------------- Objects ------------------------
 api_connector = Data365Connector()
 database_connector = InstagramAPIDatabaseHandler(user_profiles_db_url)
 # ---------------- CONSTS -------------------------
 SNOWBALL_ITERATIONS = 1
+TO_SNOWBALL_AMOUNT = 100000
 MAX_AMOUNT = 100
 THRESHOLD = 0
-# calculating one week ago date
-FROM_DATE = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
+# calculating from date for wanted period
+FROM_DATE = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
 # ---------------- Data structure -----------------
 # a set to store all the new profiles that were found during snowball (set to prevent duplicates)
 new_profiles_set = set()

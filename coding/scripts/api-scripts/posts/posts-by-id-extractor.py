@@ -15,7 +15,7 @@ profiles_id_input_file = "../../../../data/api-data/posts-comments-replies/test-
 api_connector = Data365Connector()
 database_connector = InstagramAPIDatabaseHandler(posts_db_url)
 # ---------------- Variables ----------------------
-start_from = 150
+start_from = 2454
 
 
 def get_posts_id_list():
