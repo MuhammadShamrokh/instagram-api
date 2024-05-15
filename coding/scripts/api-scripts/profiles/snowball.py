@@ -5,38 +5,31 @@ from datetime import datetime, timedelta
 import pandas as pd
 
 # ---------------- URLs ---------------------------
-input_profiles_files_url = "../../../../data/api-data/profiles/NFL/seed-NFL-users-profile.csv"
-user_profiles_db_url = "./../../../../data/api-data/profiles/profiles.db"
+# csv file that stores initial profile's id (seed)
+init_profiles_seed_file_url = "./../../../../data/seeds/climate-change.csv"
+profiles_db_url = "./../../../../data/api-data/profiles/profiles.db"
+posts_db_url = "./../../../../data/api-data/posts-comments-replies/posts.db"
 # ---------------- Objects ------------------------
 api_connector = Data365Connector()
-database_connector = InstagramAPIDatabaseHandler(user_profiles_db_url)
+profiles_database_connector = InstagramAPIDatabaseHandler(profiles_db_url)
+posts_database_connector = InstagramAPIDatabaseHandler(posts_db_url)
 # ---------------- CONSTS -------------------------
-SNOWBALL_ITERATIONS = 1
+# amount of profiles to snowball
 TO_SNOWBALL_AMOUNT = 100000
+# max amount of posts to fetch from each profile
 MAX_AMOUNT = 100
-THRESHOLD = 0
-# calculating from date for wanted period
+# Determining the minimum posting date
 FROM_DATE = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
-# ---------------- Data structure -----------------
-# a set to store all the new profiles that were found during snowball (set to prevent duplicates)
-new_profiles_set = set()
+# table to store profiles in order to snowball them
+SNOWBALLED_PROFILES_TABLE_NAME = "climate_change_profiles"
+# table to store profiles after snowballing them (engagement calculated)
+SNOWBALLED_PROFILES_ENGAGEMENT_TABLE_NAME = "climate_change_with_engagement_profiles"
 
-# array of dataframes to store data of the new profile found in each snowball iteration
-profiles_dfs_lst = []
-
-
-def init_dataframes_lst():
-    for _ in range(SNOWBALL_ITERATIONS + 1):
-        profiles_dfs_lst.append(pd.DataFrame(columns=['ID', 'Name', 'Nickname', 'Bio',
-                                                      'Post_Count', 'Follower_Count', 'Following_Count',
-                                                      'Is_Business', 'Is_Private', 'Is_Verified']))
-    logger.info("Profiles dataframe list was initialized successfully! ")
-
-
-def read_origin_profiles_df():
-    origin_profiles_df = pd.read_csv(input_profiles_files_url)
-    # adding the init dataframe to the dataframe list
-    profiles_dfs_lst[0] = origin_profiles_df.iloc[THRESHOLD:]
+# a variable to use if program crash in the middle
+THRESHOLD = 0
+# ---------------- FLAGS -----------------
+# Turn on the flag if storing the initial profile seed into the database is desired.
+STORE_SEED_IN_DB = False
 
 
 def save_profile_with_engagement_in_db(profile_data, post_amount, engagement_count):
@@ -158,9 +151,35 @@ def snowball(profiles_df, idx=0):
         save_profile_with_engagement_in_db(profile, len(profile_posts_lst), profile_engagement_during_period)
 
 
+def store_seed_in_profiles_database():
+    """
+    the function reads the initial profile's id seeds from a prepared csv file
+    then it stores the information in profiles database in order to snowball them
+    """
+    logger.info("Storing init profiles seed into profiles database...")
+    # reading csv file
+    init_profiles_df = pd.read_csv(init_profiles_seed_file_url)
+
+    # scanning the list of profiles id in order to fetch they're data and store in database
+    for index, row in init_profiles_df.iterrows():
+        logger.info("fetching and storing "+row["username"]+" profile data... ("+str(index+1)+"/"+str(len(init_profiles_df))+")")
+        # using Data365 api to fetch profile data
+        profile_data_json = api_connector.get_profile_data_by_id(row["id"])
+        # converting json into tuple
+        profile_data_tuple = api_connector.get_profile_data_tuple_from_json(profile_data_json)
+        #storing profile data in database
+        profiles_database_connector.save_profile_to_database(SNOWBALLED_PROFILES_TABLE_NAME,profile_data_tuple)
+
+
 def main():
-    # init dataframes list
-    init_dataframes_lst()
+
+    if STORE_SEED_IN_DB:
+        # inserting initial seed into database in order to start snowballing
+        store_seed_in_profiles_database()
+        # initializing an empty profile with engagement table (required to start snowball)
+        profiles_database_connector._create_new_profile_engagement_table_in_db(SNOWBALLED_PROFILES_ENGAGEMENT_TABLE_NAME)
+
+    """
     # read initial profiles
     read_origin_profiles_df()
 
@@ -172,6 +191,7 @@ def main():
         
     # calculating the engagement of profiles that were found in the last iteration (we didn't snowball to discover engagement)
     calculate_profiles_engagement_store_in_db(profiles_dfs_lst[SNOWBALL_ITERATIONS])
+    """
 
 
 if __name__ == "__main__":

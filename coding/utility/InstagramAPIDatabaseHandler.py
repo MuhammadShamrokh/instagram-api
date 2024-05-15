@@ -24,7 +24,7 @@ class InstagramAPIDatabaseHandler:
         # add the profile to the database
         self._insert_into_profile_table(table_name, profile_data_tuple)
 
-    def save_profile_with_month_engagement_to_database(self, table_name, profile_tuple):
+    def save_profile_with_engagement_to_database(self, table_name, profile_tuple):
         if len(profile_tuple) == 0:
             return
 
@@ -149,7 +149,7 @@ class InstagramAPIDatabaseHandler:
                                             Is_Private text,
                                             Is_Verified text)""")
         self.connector.commit()
-        logger.info("DatabaseHandler: user profiles table was created successfully")
+        logger.info(f"DatabaseHandler: {table_name} table was created successfully")
 
     def _create_new_profile_engagement_table_in_db(self, table_name):
         self.cursor.execute(f"""CREATE TABLE IF NOT EXISTS {table_name} (
@@ -163,10 +163,10 @@ class InstagramAPIDatabaseHandler:
                                                     Is_Business text,
                                                     Is_Private text,
                                                     Is_Verified text,
-                                                    Posts_Last_month integer,
-                                                    Engagement_Last_Month text)""")
+                                                    Posts_Amount integer,
+                                                    Engagement text)""")
         self.connector.commit()
-        logger.info("DatabaseHandler: user profiles with engagement table was created successfully")
+        logger.info(f"DatabaseHandler: {table_name} table was created successfully")
 
     def _create_new_post_table_in_db(self, table_name):
         self.cursor.execute(f"""CREATE TABLE IF NOT EXISTS {table_name} (
@@ -181,7 +181,7 @@ class InstagramAPIDatabaseHandler:
                                                             Publication_Timestamp text,
                                                             Location_ID text)""")
         self.connector.commit()
-        logger.info("DatabaseHandler: posts table was created successfully")
+        logger.info(f"DatabaseHandler: {table_name} table was created successfully")
 
     def _create_new_post_by_hashtag_table_in_db(self, table_name):
         self.cursor.execute(f"""CREATE TABLE IF NOT EXISTS {table_name} (
@@ -197,7 +197,7 @@ class InstagramAPIDatabaseHandler:
                                                             Location_ID text,
                                                             Hashtag text)""")
         self.connector.commit()
-        logger.info("DatabaseHandler: posts by hashtag table was created successfully")
+        logger.info(f"DatabaseHandler: {table_name} table was created successfully")
 
     def _close_connection(self):
         self.connector.close()
