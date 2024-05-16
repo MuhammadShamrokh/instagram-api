@@ -155,7 +155,7 @@ class InstagramAPIDatabaseHandler:
             self.connector.rollback()  # Rollback the transaction
 
     def _insert_into_profile_with_engagement_table(self, table_name, profile_tuple):
-        insert_query = f"""INSERT INTO {table_name} (ID, Name, Nickname, Bio, Post_Count, Follower_Count, Following_Count, Is_Business, Is_Private, Is_Verified, Posts_Last_Month, Engagement_Last_Month)
+        insert_query = f"""INSERT INTO {table_name} (ID, Name, Nickname, Bio, Post_Count, Follower_Count, Following_Count, Is_Business, Is_Private, Is_Verified, Posts_Amount, Engagement)
                                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
 
         try:

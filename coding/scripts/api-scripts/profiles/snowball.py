@@ -6,7 +6,7 @@ import pandas as pd
 
 # ---------------- FLAGS -----------------
 # Turn on the flag if storing the initial profile seed into the database is desired.
-STORE_SEED_IN_DB = False
+STORE_SEED_IN_DB = True
 # if flag is false, the script will collect data for existing id's only
 SNOWBALL_NEW_PROFILES = True
 
@@ -29,7 +29,7 @@ already_found_profiles_id_set = set()
 # amount of profiles to snowball
 TO_SNOWBALL_AMOUNT = 100000
 # max amount of posts to fetch from each profile
-MAX_AMOUNT = 100
+MAX_AMOUNT = 1000
 # Determining the minimum posting date
 FROM_DATE = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
 WANTED_PERIOD = "month"
@@ -102,7 +102,7 @@ def fetch_profiles_data_calculate_engagement(profiles_id_list):
             profiles_database_connector.save_profile_with_engagement_to_database(SNOWBALLED_PROFILES_ENGAGEMENT_TABLE_NAME, profile_tuple + (len(profile_posts_lst), profile_engagement_during_period,))
 
 
-def scan_profile_posts_calculate_engagement(profile, profile_posts_lst):
+def scan_profile_posts_fetch_comments_calculate_engagement(profile, profile_posts_lst):
     """
     input: - the current profile which is being snowballed
            - current profiles posts list
@@ -155,7 +155,7 @@ def snowball(profiles_id_list):
                         f"{len(profile_posts_lst)} Posts were posted by {profile['Name']} ({profile['Nickname']}) in the last {WANTED_PERIOD}.")
 
             # scanning profile posts to calculate engagement and find new profiles
-            profile_engagement_during_period = scan_profile_posts_calculate_engagement(profile, profile_posts_lst)
+            profile_engagement_during_period = scan_profile_posts_fetch_comments_calculate_engagement(profile, profile_posts_lst)
 
             # saving profile with engagement data in a database
             profile_tuple = api_connector.get_profile_data_tuple_from_json(profile_json)
@@ -180,7 +180,7 @@ def get_next_iteration_of_profiles():
     global snowballed_profiles_id_counter
 
     # reading databases tables as pandas dataframe
-    profiles_id_df = profiles_database_connector.get_profiles_without_engagement_table_content_as_df(SNOWBALLED_PROFILES_ID_TABLE_NAME)
+    profiles_id_df = profiles_database_connector.get_id_table_content_as_df(SNOWBALLED_PROFILES_ID_TABLE_NAME)
     snowballed_profiles_df = profiles_database_connector.get_profiles_with_engagement_table_content_as_df(SNOWBALLED_PROFILES_ENGAGEMENT_TABLE_NAME)
     # extracting all the profiles that appear in SNOWBALLED_PROFILES_TABLE and doesn't appear in SNOWBALLED_PROFILES_ENGAGEMENT_TABLE
     to_snowball_profiles = profiles_id_df[~profiles_id_df.ID.isin(snowballed_profiles_df.ID)]
@@ -213,7 +213,6 @@ def main():
     if STORE_SEED_IN_DB:
         # inserting initial seed into database in order to start snowballing
         init_database_tables_store_seed_in_profiles_database()
-        # initializing an empty profile with engagement table (required to start snowball)
 
     # starting snowball process until we have requested number of profiles
     profiles_id_to_snowball_list = get_next_iteration_of_profiles()
@@ -232,3 +231,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

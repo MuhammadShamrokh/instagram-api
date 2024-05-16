@@ -7,7 +7,7 @@ formatter = logging.Formatter(fmt="%(asctime)s.%(msecs)03d %(levelname)s: %(mess
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-file_handler = logging.FileHandler('../../../loggers/logs/search-by-hashtag-logs.txt', 'a')
+file_handler = logging.FileHandler('./../../../loggers/logs/snowball-logs.txt', 'a')
 file_handler.setFormatter(formatter)
 screen_handler = logging.StreamHandler()
 screen_handler.setFormatter(formatter)
