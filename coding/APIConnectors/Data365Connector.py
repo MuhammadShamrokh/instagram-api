@@ -18,23 +18,26 @@ class Data365Connector:
     def get_profile_data_by_id(self, profile_id):
         profile_data = None
 
-        # sending update task
-        update_url = self.profile_task_base_url + str(profile_id) + "/update"
-        update_query_params = {"access_token": Data365Connector.api_access_token}
-        update_task_response = self._create_update_request(update_url, update_query_params)
+        try:
+            # sending update task
+            update_url = self.profile_task_base_url + str(profile_id) + "/update"
+            update_query_params = {"access_token": Data365Connector.api_access_token}
+            update_task_response = self._create_update_request(update_url, update_query_params)
 
-        if update_task_response.status_code == 202:
-            # waiting till the update task ends
-            is_update_task_done_with_success = self._wait_for_update_task_to_finish(update_url, update_query_params)
+            if update_task_response.status_code == 202:
+                # waiting till the update task ends
+                is_update_task_done_with_success = self._wait_for_update_task_to_finish(update_url, update_query_params)
 
-            if is_update_task_done_with_success:
-                # fetching profile data
-                profile_data = self.get_cached_profile_data(profile_id)
+                if is_update_task_done_with_success:
+                    # fetching profile data
+                    profile_data = self.get_cached_profile_data(profile_id)
 
+                else:
+                    logger.warning("Data365Connector: Caching profile "+str(profile_id)+" data into Data365 API databases process failed!")
             else:
-                logger.warning("Data365Connector: Caching profile "+str(profile_id)+" data into Data365 API databases process failed!")
-        else:
-            logger.warning("Data365Connector: Could not start profile "+str(profile_id)+" update task")
+                logger.warning(f"Data365Connector: Could not start profile {profile_id} update task")
+        except Exception:
+            logger.warning(f"Data365Connector: Something went wrong while fetching profile {profile_id} data!")
 
         return profile_data
 
@@ -61,24 +64,27 @@ class Data365Connector:
     def get_post_by_id(self, post_id):
         post_data = None
 
-        # sending update task
-        update_url = self.post_task_base_url + str(post_id) + "/update"
-        update_query_params = {"access_token": Data365Connector.api_access_token}
-        update_task_response = self._create_update_request(update_url, update_query_params)
+        try:
+            # sending update task
+            update_url = self.post_task_base_url + str(post_id) + "/update"
+            update_query_params = {"access_token": Data365Connector.api_access_token}
+            update_task_response = self._create_update_request(update_url, update_query_params)
 
-        if update_task_response.status_code == 202:
-            # waiting till the update task ends
-            is_update_task_done_with_success = self._wait_for_update_task_to_finish(update_url, update_query_params)
+            if update_task_response.status_code == 202:
+                # waiting till the update task ends
+                is_update_task_done_with_success = self._wait_for_update_task_to_finish(update_url, update_query_params)
 
-            if is_update_task_done_with_success:
-                # fetching profile data
-                post_data = self.get_cached_post_data(post_id)
+                if is_update_task_done_with_success:
+                    # fetching profile data
+                    post_data = self.get_cached_post_data(post_id)
 
+                else:
+                    logger.warning("Data365Connector: Caching post " + str(
+                        post_id) + " data into Data365 API databases process failed!")
             else:
-                logger.warning("Data365Connector: Caching post " + str(
-                    post_id) + " data into Data365 API databases process failed!")
-        else:
-            logger.warning("Data365Connector: Could not start post " + str(post_id) + " update task")
+                logger.warning("Data365Connector: Could not start post " + str(post_id) + " update task")
+        except Exception:
+            logger.warning(f"Data365Connector: Something went wrong while fetching post {post_id} data!")
 
         return post_data
 
@@ -98,8 +104,7 @@ class Data365Connector:
                 logger.warning(
                     "Data365Connector: GET post " + str(post_id) + " data request has failed")
         except Exception:
-            logger.warning(
-                "Data365Connector: Something went wrong while fetching post " + str(post_id) + " data!")
+            logger.warning(f"Data365Connector: Something went wrong while fetching post {post_id} data!")
 
         return post_data
 
@@ -109,35 +114,39 @@ class Data365Connector:
     def get_posts_by_hashtag(self, hashtag, max_posts, from_date, to_date=None, num_of_pages=5):
         posts_lst = list()
 
-        # sending update task
-        logger.debug("Data365Connector: Sending Post request to start a search posts by hashtag "+hashtag+" update task")
-        update_url = self.hashtag_search_update_base_url + hashtag + "/update"
-        update_query_params = {'from_date': from_date, 'max_posts': max_posts, 'load_posts_data': True, 'access_token': Data365Connector.api_access_token}
-        update_task_response = self._create_update_request(update_url, update_query_params)
+        try:
+            # sending update task
+            logger.debug("Data365Connector: Sending Post request to start a search posts by hashtag "+hashtag+" update task")
+            update_url = self.hashtag_search_update_base_url + hashtag + "/update"
+            update_query_params = {'from_date': from_date, 'max_posts': max_posts, 'load_posts_data': True, 'access_token': Data365Connector.api_access_token}
+            update_task_response = self._create_update_request(update_url, update_query_params)
 
-        if update_task_response.status_code == 202:
-            # waiting till the update task ends
-            logger.debug("Data365Connector: waiting for search posts by hashtag "+hashtag+" update task to finish")
-            token_query_params = {'access_token': Data365Connector.api_access_token}
-            is_update_task_done_with_success = self._wait_for_update_task_to_finish(update_url, token_query_params)
+            if update_task_response.status_code == 202:
+                # waiting till the update task ends
+                logger.debug("Data365Connector: waiting for search posts by hashtag "+hashtag+" update task to finish")
+                token_query_params = {'access_token': Data365Connector.api_access_token}
+                is_update_task_done_with_success = self._wait_for_update_task_to_finish(update_url, token_query_params)
 
-            if is_update_task_done_with_success:
-                logger.info('Data365Connector: the amount of received posts that include '+hashtag+" hashtag is "+str(self._get_amount_of_posts_for_hashtag(hashtag)))
-                # fetching all posts that were found in hashtag search
-                get_posts_url = self.hashtag_search_update_base_url + hashtag + '/posts'
-                get_post_query_params = {'from_date': from_date, 'to_date': to_date, 'lang': 'en', "max_page_size": 100,
-                                         'access_token': self.api_access_token}
+                if is_update_task_done_with_success:
+                    logger.info('Data365Connector: the amount of received posts that include '+hashtag+" hashtag is "+str(self._get_amount_of_posts_for_hashtag(hashtag)))
+                    # fetching all posts that were found in hashtag search
+                    get_posts_url = self.hashtag_search_update_base_url + hashtag + '/posts'
+                    get_post_query_params = {'from_date': from_date, 'to_date': to_date, 'lang': 'en', "max_page_size": 100,
+                                             'access_token': self.api_access_token}
 
-                posts_lst = self._fetch_data_return_list('posts', get_posts_url, get_post_query_params, number_of_pages=num_of_pages)
+                    posts_lst = self._fetch_data_return_list('posts', get_posts_url, get_post_query_params, number_of_pages=num_of_pages)
+                else:
+                    logger.warning("Data365Connector: Caching posts that include hashtag "+hashtag+" into Data365 API databases process failed!")
+
             else:
-                logger.warning("Data365Connector: Caching posts that include hashtag "+hashtag+" into Data365 API databases process failed!")
-
-        else:
-            logger.warning("Data365Connector: Could not start search posts by hashtag "+hashtag+" update task")
+                logger.warning(f"Data365Connector: Could not start search posts by hashtag {hashtag} update task")
+        except Exception:
+            logger.warning(f"Data365Connector: Something went wrong while fetching posts using {hashtag} hashtag")
 
         return posts_lst
 
     def get_cached_hashtag_posts(self, hashtag, from_date, to_date=None, num_of_pages=5):
+
         # preparing url and query params
         get_posts_url = self.hashtag_search_update_base_url + hashtag + '/posts'
         get_post_query_params = {'from_date': from_date, 'to_date': to_date, 'lang': 'en', "max_page_size": 100,
@@ -152,41 +161,49 @@ class Data365Connector:
         posts_list = list()
         profile_data = None
 
-        # url and query params to init an update task
-        update_url = self.profile_task_base_url + str(profile_id) + "/update"
-        # query params for post request
-        update_query_params = {"from_date": from_date, "load_feed_posts": True, "max_posts": max_posts,
-                               "access_token": self.api_access_token}
-        # query params for status and get request
-        access_token_query_params = {"access_token": self.api_access_token}
+        try:
+            # url and query params to init an update task
+            update_url = self.profile_task_base_url + str(profile_id) + "/update"
+            # query params for post request
+            update_query_params = {"from_date": from_date, "load_feed_posts": True, "max_posts": max_posts,
+                                   "access_token": self.api_access_token}
+            # query params for status and get request
+            access_token_query_params = {"access_token": self.api_access_token}
 
-        update_response = requests.post(update_url, params=update_query_params)
-        # checking post request status code
-        if update_response.status_code == 202:
-            logger.debug("Data365Connector: Post request was sent successfully - response status code is 202.")
-            data_cached = self._wait_for_update_task_to_finish(update_url, access_token_query_params)
-            # data was cached in API
-            if data_cached:
-                # extracting profile data using api
-                profile_data = self.get_cached_profile_data(profile_id)
+            update_response = requests.post(update_url, params=update_query_params)
+            # checking post request status code
+            if update_response.status_code == 202:
+                logger.debug("Data365Connector: Post request was sent successfully - response status code is 202.")
+                data_cached = self._wait_for_update_task_to_finish(update_url, access_token_query_params)
+                # data was cached in API
+                if data_cached:
+                    # extracting profile data using api
+                    profile_data = self.get_cached_profile_data(profile_id)
 
-                # preparing posts data fetch request url
-                get_posts_data_url = self.profile_task_base_url + str(profile_id) + "/feed/posts"
-                get_request_query_parameters = {"from_date": from_date, "to_date": to_date, "order_by": "date_desc", "max_page_size": 100,
-                                                "access_token": self.api_access_token}
+                    # preparing posts data fetch request url
+                    get_posts_data_url = self.profile_task_base_url + str(profile_id) + "/feed/posts"
+                    get_request_query_parameters = {"from_date": from_date, "to_date": to_date, "order_by": "date_desc", "max_page_size": 100,
+                                                    "access_token": self.api_access_token}
 
-                posts_list = self._fetch_data_return_list("Posts", get_posts_data_url, get_request_query_parameters)
-        else:
-            logger.warning("Data365Connector: POST request to start update task for profile "+str(profile_id)+" has failed")
+                    posts_list = self._fetch_data_return_list("Posts", get_posts_data_url, get_request_query_parameters)
+            else:
+                logger.warning(f"Data365Connector: POST request to start update task for profile {profile_id} has failed")
+        except Exception:
+            logger.warning(f"Data365Connector: Something went wrong while fetching profile {profile_id} data and his list of posts")
 
-        return (profile_data, posts_list)
+        return profile_data, posts_list
 
     def get_cached_profile_posts(self, profile_id, from_date):
-        get_posts_data_url = self.profile_task_base_url + str(profile_id) + "/feed/posts"
-        get_request_query_parameters = {"from_date": from_date, "order_by": "date_desc", "max_page_size": 100,
-                                        "access_token": self.api_access_token}
+        posts_list = list()
+        try:
+            get_posts_data_url = self.profile_task_base_url + str(profile_id) + "/feed/posts"
+            get_request_query_parameters = {"from_date": from_date, "order_by": "date_desc", "max_page_size": 100,
+                                            "access_token": self.api_access_token}
 
-        posts_list = self._fetch_data_return_list("Posts", get_posts_data_url, get_request_query_parameters)
+            posts_list = self._fetch_data_return_list("Posts", get_posts_data_url, get_request_query_parameters)
+        except Exception:
+            logger.warning(
+                f"Data365Connector: Something went wrong while fetching profile {profile_id} cached posts")
 
         return posts_list
 
@@ -194,27 +211,30 @@ class Data365Connector:
         # list to insert post comments into
         comments_list = list()
 
-        # url and query params to init an update task
-        update_url = self.post_task_base_url + str(post_id) + "/update"
-        # query params for post request
-        update_query_params = {"from_date": from_date, "load_comments": True, "max_posts": max_comments,
-                               "access_token": self.api_access_token}
-        # query params for status and get request
-        access_token_query_params = {"access_token": self.api_access_token}
+        try:
+            # url and query params to init an update task
+            update_url = self.post_task_base_url + str(post_id) + "/update"
+            # query params for post request
+            update_query_params = {"from_date": from_date, "load_comments": True, "max_posts": max_comments,
+                                   "access_token": self.api_access_token}
+            # query params for status and get request
+            access_token_query_params = {"access_token": self.api_access_token}
 
-        update_response = requests.post(update_url, params=update_query_params)
-        # checking post request status code
-        if update_response.status_code == 202:
-            data_cached = self._wait_for_update_task_to_finish(update_url, access_token_query_params)
-            # data was cached in API
-            if data_cached:
-                get_comments_data_url = self.post_task_base_url + str(post_id) + "/comments"
-                get_request_query_parameters = {"from_date": from_date, "order_by": "date_desc", "max_page_size": 100,
-                                                "access_token": self.api_access_token}
+            update_response = requests.post(update_url, params=update_query_params)
+            # checking post request status code
+            if update_response.status_code == 202:
+                data_cached = self._wait_for_update_task_to_finish(update_url, access_token_query_params)
+                # data was cached in API
+                if data_cached:
+                    get_comments_data_url = self.post_task_base_url + str(post_id) + "/comments"
+                    get_request_query_parameters = {"from_date": from_date, "order_by": "date_desc", "max_page_size": 100,
+                                                    "access_token": self.api_access_token}
 
-                comments_list = self._fetch_data_return_list("comments", get_comments_data_url, get_request_query_parameters)
-        else:
-            logger.warning("Data365Connector: POST request to update post "+str(post_id)+" comment's has failed")
+                    comments_list = self._fetch_data_return_list("comments", get_comments_data_url, get_request_query_parameters)
+            else:
+                logger.warning(f"Data365Connector: POST request to update post {post_id} comment's has failed")
+        except Exception:
+            logger.warning(f"Data365Connector: Something went wrong while fetching post {post_id} comments")
 
         return comments_list
 

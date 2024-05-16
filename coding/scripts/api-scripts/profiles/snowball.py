@@ -4,6 +4,12 @@ from coding.loggers.Logger import logger
 from datetime import datetime, timedelta
 import pandas as pd
 
+# ---------------- FLAGS -----------------
+# Turn on the flag if storing the initial profile seed into the database is desired.
+STORE_SEED_IN_DB = False
+# if flag is false, the script will collect data for existing id's only
+SNOWBALL_NEW_PROFILES = True
+
 # ---------------- URLs ---------------------------
 # csv file that stores initial profile's id (seed)
 init_profiles_seed_file_url = "./../../../../data/seeds/climate-change.csv"
@@ -38,41 +44,6 @@ POSTS_TABLE_NAME = "climate_change_snowball_posts"
 # a variable to use if program crash in the middle
 THRESHOLD = 0
 
-# ---------------- FLAGS -----------------
-# Turn on the flag if storing the initial profile seed into the database is desired.
-STORE_SEED_IN_DB = False
-
-
-def get_profiles_data_calculate_engagement(profiles_id_list):
-    """
-    input: - profiles id list
-
-    the function iterate over the profile's id, retrieve data, calculate engagement and store the data in database
-    """
-    for idx,profile_id in enumerate(profiles_id_list):
-        (profile_json, profile_posts_lst) = api_connector.get_profile_data_and_posts_list_by_profile_id(profile_id, MAX_AMOUNT, FROM_DATE)
-        profile_data_dict = api_connector.get_profile_data_dict_from_json(profile_json)
-        profile_engagement_during_period = 0
-
-        if profile_json is not None and profile_posts_lst is not None:
-
-            logger.info(f"calculating engagement and storing data for profile {profile_data_dict['Name']} ({profile_data_dict['Nickname']}). ({idx}/{len(profiles_id_list)})")
-            # scanning all posts to discover who interacted with same profile id
-            for post in profile_posts_lst:
-                # storing post data in database
-                post_tuple = api_connector.get_post_data_tuple_from_json(post)
-                posts_database_connector.save_post_to_database(POSTS_TABLE_NAME, post_tuple)
-
-                # adding the post engagement to the profile total engagement in the last month
-                if post['likes_count'] is not None:
-                    profile_engagement_during_period += post['likes_count']
-                if post['comments_count'] is not None:
-                    profile_engagement_during_period += post['comments_count']
-
-            # storing data in database
-            profile_tuple = api_connector.get_profile_data_tuple_from_json(profile_json)
-            profiles_database_connector.save_profile_with_engagement_to_database(SNOWBALLED_PROFILES_ENGAGEMENT_TABLE_NAME, profile_tuple + (len(profile_posts_lst), profile_engagement_during_period,))
-
 
 def find_store_new_profiles_from_comment(comments_lst):
     """
@@ -98,6 +69,37 @@ def find_store_new_profiles_from_comment(comments_lst):
             already_found_profiles_id_set.add(comment_owner_id)
 
     return profiles_found_from_current_post
+
+
+def fetch_profiles_data_calculate_engagement(profiles_id_list):
+    """
+    input: - profiles id list
+
+    the function iterate over the profile's id, retrieve data, calculate engagement and store the data in database
+    """
+    for idx, profile_id in enumerate(profiles_id_list):
+        (profile_json, profile_posts_lst) = api_connector.get_profile_data_and_posts_list_by_profile_id(profile_id, MAX_AMOUNT, FROM_DATE)
+        profile_data_dict = api_connector.get_profile_data_dict_from_json(profile_json)
+        profile_engagement_during_period = 0
+
+        if profile_json is not None and len(profile_posts_lst) != 0:
+
+            logger.info(f"calculating engagement and storing data for profile {profile_data_dict['Name']} ({profile_data_dict['Nickname']}). ({idx}/{len(profiles_id_list)})")
+            # scanning all posts to discover who interacted with same profile id
+            for post in profile_posts_lst:
+                # storing post data in database
+                post_tuple = api_connector.get_post_data_tuple_from_json(post)
+                posts_database_connector.save_post_to_database(POSTS_TABLE_NAME, post_tuple)
+
+                # adding the post engagement to the profile total engagement in the last month
+                if post['likes_count'] is not None:
+                    profile_engagement_during_period += post['likes_count']
+                if post['comments_count'] is not None:
+                    profile_engagement_during_period += post['comments_count']
+
+            # storing data in database
+            profile_tuple = api_connector.get_profile_data_tuple_from_json(profile_json)
+            profiles_database_connector.save_profile_with_engagement_to_database(SNOWBALLED_PROFILES_ENGAGEMENT_TABLE_NAME, profile_tuple + (len(profile_posts_lst), profile_engagement_during_period,))
 
 
 def scan_profile_posts_calculate_engagement(profile, profile_posts_lst):
@@ -126,9 +128,12 @@ def scan_profile_posts_calculate_engagement(profile, profile_posts_lst):
 
         logger.debug(f"Fetching post {post['id']} comment's which was posted by {profile['Name']}")
         comments_lst = api_connector.get_post_comments(post['id'], FROM_DATE, MAX_AMOUNT)
-        # scanning comments to find new profiles that interacted with current profile
-        new_profiles_found_from_post_count = find_store_new_profiles_from_comment(comments_lst)
-        logger.info(f"{new_profiles_found_from_post_count} New profiles were found while scanning post {post['id']} comments")
+
+        if len(comments_lst) != 0:
+            # scanning comments to find new profiles that interacted with current profile
+            new_profiles_found_from_post_count = find_store_new_profiles_from_comment(comments_lst)
+            logger.info(f"{new_profiles_found_from_post_count} New profiles were found while scanning post {post['id']} comments\n"
+                        f">>>> Currently, {snowballed_profiles_id_counter} profiles were found during snowball <<<<")
     
     return profile_engagement_during_period
 
@@ -145,7 +150,7 @@ def snowball(profiles_id_list):
         (profile_json, profile_posts_lst) = api_connector.get_profile_data_and_posts_list_by_profile_id(profile_id, MAX_AMOUNT, FROM_DATE)
         profile = api_connector.get_profile_data_dict_from_json(profile_json)
 
-        if profile is not None and profile_posts_lst is not None:
+        if profile is not None and len(profile_posts_lst) != 0:
             logger.info(f"Snowballing profile {profile['Name']} ({profile['Nickname']}) with id {profile['ID']}.\n"
                         f"{len(profile_posts_lst)} Posts were posted by {profile['Name']} ({profile['Nickname']}) in the last {WANTED_PERIOD}.")
 
@@ -214,7 +219,7 @@ def main():
     profiles_id_to_snowball_list = get_next_iteration_of_profiles()
     logger.info(f"Snowball process has began, snowballing {TO_SNOWBALL_AMOUNT - snowballed_profiles_id_counter} new profiles")
 
-    while snowballed_profiles_id_counter < TO_SNOWBALL_AMOUNT:
+    while snowballed_profiles_id_counter < TO_SNOWBALL_AMOUNT and SNOWBALL_NEW_PROFILES:
         # Retrieving Instagram profiles not yet activated for a new snowball iteration
         # snowballing to get new list of profiles id
         snowball(profiles_id_to_snowball_list)
@@ -222,8 +227,7 @@ def main():
 
     logger.info("Snowball process has ended, retrieving profiles data for remaining profiles id")
     # retrieving data and calculating engagement for all the remaining profiles id
-    remaining_profiles_id_list = get_next_iteration_of_profiles()
-    get_profiles_data_calculate_engagement(remaining_profiles_id_list)
+    fetch_profiles_data_calculate_engagement(profiles_id_to_snowball_list)
 
 
 if __name__ == "__main__":
