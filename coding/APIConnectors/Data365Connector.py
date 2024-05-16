@@ -147,9 +147,10 @@ class Data365Connector:
 
         return posts_lst
 
-    def get_posts_by_profile_id(self, profile_id, max_posts=10, from_date=None, to_date=None):
+    def get_profile_data_and_posts_list_by_profile_id(self, profile_id, max_posts=10, from_date=None, to_date=None):
         # list to insert profile posts into
         posts_list = list()
+        profile_data = None
 
         # url and query params to init an update task
         update_url = self.profile_task_base_url + str(profile_id) + "/update"
@@ -166,6 +167,10 @@ class Data365Connector:
             data_cached = self._wait_for_update_task_to_finish(update_url, access_token_query_params)
             # data was cached in API
             if data_cached:
+                # extracting profile data using api
+                profile_data = self.get_cached_profile_data(profile_id)
+
+                # preparing posts data fetch request url
                 get_posts_data_url = self.profile_task_base_url + str(profile_id) + "/feed/posts"
                 get_request_query_parameters = {"from_date": from_date, "to_date": to_date, "order_by": "date_desc", "max_page_size": 100,
                                                 "access_token": self.api_access_token}
@@ -174,7 +179,7 @@ class Data365Connector:
         else:
             logger.warning("Data365Connector: POST request to start update task for profile "+str(profile_id)+" has failed")
 
-        return posts_list
+        return (profile_data, posts_list)
 
     def get_cached_profile_posts(self, profile_id, from_date):
         get_posts_data_url = self.profile_task_base_url + str(profile_id) + "/feed/posts"
@@ -259,6 +264,61 @@ class Data365Connector:
             verified = "unknown"
 
         return profile_id, name, nickname, bio, post_count, followers_count, following_count, business, private, verified
+
+    def get_profile_data_dict_from_json(self, profile_json):
+        if profile_json is None:
+            return ()
+
+        profile_data_dict = dict()
+        profile_id = profile_json.get("id", None)
+
+        name = profile_json.get("full_name", None)
+        if name is None:
+            name = "unknown"
+
+        nickname = profile_json.get("username", None)
+        if nickname is None:
+            nickname = "unknown"
+
+        bio = profile_json.get("biography", None)
+        if bio is None:
+            bio = "No biography"
+
+        post_count = profile_json.get("posts_count", -1)
+        if post_count is None:
+            post_count = -1
+
+        followers_count = profile_json.get("followers_count", -1)
+        if followers_count is None:
+            followers_count = -1
+
+        following_count = profile_json.get("followings_count", -1)
+        if following_count is None:
+            following_count = -1
+
+        business = profile_json.get("is_business_account", "unknown")
+        if business is None:
+            business = "unknown"
+
+        private = profile_json.get("is_private", "unknown")
+        if private is None:
+            private = "unknown"
+
+        verified = profile_json.get("is_verified", "unknown")
+        if verified is None:
+            verified = "unknown"
+
+        profile_data_dict['ID'] = profile_id
+        profile_data_dict['Name'] = name
+        profile_data_dict['Nickname'] = nickname
+        profile_data_dict['Bio'] = bio
+        profile_data_dict['post_Count'] = post_count
+        profile_data_dict['Followers_Count'] = followers_count
+        profile_data_dict['Following_Count'] = following_count
+        profile_data_dict['Business'] = business
+        profile_data_dict['Private'] = private
+        profile_data_dict['Verified'] = verified
+        return profile_data_dict
 
     def get_post_data_tuple_from_json(self, post_json):
         if post_json is None:

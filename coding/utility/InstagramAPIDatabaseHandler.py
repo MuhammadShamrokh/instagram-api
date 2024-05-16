@@ -1,5 +1,6 @@
 from coding.loggers.Logger import logger
 import sqlite3
+import pandas as pd
 
 
 class InstagramAPIDatabaseHandler:
@@ -11,6 +12,54 @@ class InstagramAPIDatabaseHandler:
     def __del__(self):
         self._close_connection()
 
+    def create_new_profile_table_in_db(self, table_name):
+        self.cursor.execute(f"""CREATE TABLE IF NOT EXISTS {table_name} (
+                                            ID text PRIMARY KEY,
+                                            Name text,
+                                            Nickname text,
+                                            Bio text,
+                                            Post_Count integer,
+                                            Follower_Count integer,
+                                            Following_Count integer,
+                                            Is_Business text,
+                                            Is_Private text,
+                                            Is_Verified text)""")
+        self.connector.commit()
+        logger.info(f"DatabaseHandler: {table_name} table was created successfully")
+
+    def create_new_profile_engagement_table_in_db(self, table_name):
+        self.cursor.execute(f"""CREATE TABLE IF NOT EXISTS {table_name} (
+                                                    ID text PRIMARY KEY,
+                                                    Name text,
+                                                    Nickname text,
+                                                    Bio text,
+                                                    Post_Count integer,
+                                                    Follower_Count integer,
+                                                    Following_Count integer,
+                                                    Is_Business text,
+                                                    Is_Private text,
+                                                    Is_Verified text,
+                                                    Posts_Amount integer,
+                                                    Engagement text)""")
+        self.connector.commit()
+        logger.info(f"DatabaseHandler: {table_name} table was created successfully")
+
+    def create_new_profile_id_table_in_db(self, table_name):
+        self.cursor.execute(f"""CREATE TABLE IF NOT EXISTS {table_name} (
+                                            ID text PRIMARY KEY)""")
+        self.connector.commit()
+        logger.info(f"DatabaseHandler: {table_name} table was created successfully")
+
+    def save_id_to_database(self, table_name, input_id):
+        # checking if table exist in database
+        self.cursor.execute("SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
+        # if table doesn't exist, we add the table to database
+        if self.cursor.fetchone()[0] == 0:
+            self.create_new_profile_id_table_in_db(table_name)
+
+        # add the profile to the database
+        self._insert_into_profile_id_table(table_name, input_id)
+
     def save_profile_to_database(self, table_name, profile_data_tuple):
         if len(profile_data_tuple) == 0:
             return
@@ -19,7 +68,7 @@ class InstagramAPIDatabaseHandler:
         self.cursor.execute("SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
         # if table doesn't exist, we add the table to database
         if self.cursor.fetchone()[0] == 0:
-            self._create_new_profile_table_in_db(table_name)
+            self.create_new_profile_table_in_db(table_name)
 
         # add the profile to the database
         self._insert_into_profile_table(table_name, profile_data_tuple)
@@ -32,7 +81,7 @@ class InstagramAPIDatabaseHandler:
         self.cursor.execute("SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
         # if table doesn't exist, we add the table to database
         if self.cursor.fetchone()[0] == 0:
-            self._create_new_profile_engagement_table_in_db(table_name)
+            self.create_new_profile_engagement_table_in_db(table_name)
 
         # add the profile to the database
         self._insert_into_profile_with_engagement_table(table_name, profile_tuple)
@@ -70,6 +119,25 @@ class InstagramAPIDatabaseHandler:
         self.cursor.execute(drop_table_query)
         self.connector.commit()
 
+    def get_profiles_with_engagement_table_content_as_df(self, table_name):
+        table_content_df = pd.read_sql_query(f"""SELECT ID, Name ,Nickname ,Bio ,Post_Count ,Follower_Count ,Following_Count ,Is_Business ,Is_Private ,Is_Verified ,Posts_Amount ,Engagement 
+                                            FROM {table_name}
+                                            ORDER BY engagement desc""", self.connector)
+
+        return table_content_df
+
+    def get_profiles_without_engagement_table_content_as_df(self, table_name):
+        table_content_df = pd.read_sql_query(f"""SELECT ID, Name ,Nickname ,Bio ,Post_Count ,Follower_Count ,Following_Count ,Is_Business ,Is_Private ,Is_Verified 
+                                                    FROM {table_name}""", self.connector)
+
+        return table_content_df
+
+    def get_id_table_content_as_df(self, table_name):
+        table_content_df = pd.read_sql_query(f"""SELECT ID
+                                                 FROM {table_name}""", self.connector)
+
+        return table_content_df
+
     def _insert_into_profile_table(self, table_name, profile_data_tuple):
         insert_query = f"""INSERT INTO {table_name} (ID, Name, Nickname, Bio, Post_Count, Follower_Count, Following_Count, Is_Business, Is_Private, Is_Verified)
                                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
@@ -100,6 +168,20 @@ class InstagramAPIDatabaseHandler:
         except sqlite3.IntegrityError as e:
             logger.warning(
                 "DatabaseHandler: insertion was failed, " + profile_tuple[1] + " profile id already exists in the database -Primary key.")
+            self.connector.rollback()  # Rollback the transaction
+
+    def _insert_into_profile_id_table(self, table_name, input_id):
+        insert_query = f"""INSERT INTO {table_name} (ID) VALUES (?)"""
+
+        try:
+            # Execute the SQL query with the provided parameters
+            self.cursor.execute(insert_query, (input_id,))
+            self.connector.commit()
+            logger.debug(f"DatabaseHandler: {input_id} inserted to database successfully.")
+
+        # profile id already exists error
+        except sqlite3.IntegrityError as e:
+            logger.warning(f"DatabaseHandler: insertion was failed, {input_id} already exists in the database -Primary key.")
             self.connector.rollback()  # Rollback the transaction
 
     def _insert_post_into_table(self, table_name, post_data_tuple):
@@ -135,38 +217,6 @@ class InstagramAPIDatabaseHandler:
                 "DatabaseHandler: insertion was failed, " + post_data_tuple[
                     0] + " post id already exists in the database -Primary key.")
             self.connector.rollback()  # Rollback the transaction
-
-    def _create_new_profile_table_in_db(self, table_name):
-        self.cursor.execute(f"""CREATE TABLE IF NOT EXISTS {table_name} (
-                                            ID text PRIMARY KEY,
-                                            Name text,
-                                            Nickname text,
-                                            Bio text,
-                                            Post_Count integer,
-                                            Follower_Count integer,
-                                            Following_Count integer,
-                                            Is_Business text,
-                                            Is_Private text,
-                                            Is_Verified text)""")
-        self.connector.commit()
-        logger.info(f"DatabaseHandler: {table_name} table was created successfully")
-
-    def _create_new_profile_engagement_table_in_db(self, table_name):
-        self.cursor.execute(f"""CREATE TABLE IF NOT EXISTS {table_name} (
-                                                    ID text PRIMARY KEY,
-                                                    Name text,
-                                                    Nickname text,
-                                                    Bio text,
-                                                    Post_Count integer,
-                                                    Follower_Count integer,
-                                                    Following_Count integer,
-                                                    Is_Business text,
-                                                    Is_Private text,
-                                                    Is_Verified text,
-                                                    Posts_Amount integer,
-                                                    Engagement text)""")
-        self.connector.commit()
-        logger.info(f"DatabaseHandler: {table_name} table was created successfully")
 
     def _create_new_post_table_in_db(self, table_name):
         self.cursor.execute(f"""CREATE TABLE IF NOT EXISTS {table_name} (
