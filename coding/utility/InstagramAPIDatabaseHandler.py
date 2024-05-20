@@ -118,6 +118,7 @@ class InstagramAPIDatabaseHandler:
         drop_table_query = f"DROP TABLE IF EXISTS {table_name};"
         self.cursor.execute(drop_table_query)
         self.connector.commit()
+        logger.info(f"DatabaseHandler: {table_name} table was deleted successfully.")
 
     def get_profiles_with_engagement_table_content_as_df(self, table_name):
         table_content_df = pd.read_sql_query(f"""SELECT ID, Name ,Nickname ,Bio ,Post_Count ,Follower_Count ,Following_Count ,Is_Business ,Is_Private ,Is_Verified ,Posts_Amount ,Engagement 

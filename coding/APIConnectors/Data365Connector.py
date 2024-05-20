@@ -215,7 +215,7 @@ class Data365Connector:
             # url and query params to init an update task
             update_url = self.post_task_base_url + str(post_id) + "/update"
             # query params for post request
-            update_query_params = {"from_date": from_date, "load_comments": True, "max_posts": max_comments,
+            update_query_params = {"from_date": from_date, "load_comments": True, "max_comments": max_comments,
                                    "access_token": self.api_access_token}
             # query params for status and get request
             access_token_query_params = {"access_token": self.api_access_token}

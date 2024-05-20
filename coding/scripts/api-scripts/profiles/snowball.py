@@ -6,7 +6,7 @@ import pandas as pd
 
 # ---------------- FLAGS -----------------
 # Turn on the flag if storing the initial profile seed into the database is desired.
-STORE_SEED_IN_DB = True
+STORE_SEED_IN_DB = False
 # if flag is false, the script will collect data for existing id's only
 SNOWBALL_NEW_PROFILES = True
 
@@ -43,6 +43,16 @@ POSTS_TABLE_NAME = "climate_change_snowball_posts"
 
 # a variable to use if program crash in the middle
 THRESHOLD = 0
+
+
+def delete_database_tables():
+    """
+    the function deletes all the database tables this script create (cleaning)
+    !!! use this function with caution !!!
+    """
+    profiles_database_connector.delete_database_table(SNOWBALLED_PROFILES_ENGAGEMENT_TABLE_NAME)
+    profiles_database_connector.delete_database_table(SNOWBALLED_PROFILES_ID_TABLE_NAME)
+    posts_database_connector.delete_database_table(POSTS_TABLE_NAME)
 
 
 def find_store_new_profiles_from_comment(comments_lst):
@@ -84,7 +94,7 @@ def fetch_profiles_data_calculate_engagement(profiles_id_list):
 
         if profile_json is not None and len(profile_posts_lst) != 0:
 
-            logger.debug(f"calculating engagement and storing data for profile {profile_data_dict['Name']} ({profile_data_dict['Nickname']}). ({idx}/{len(profiles_id_list)})")
+            logger.debug(f"calculating engagement and storing data for profile {profile_data_dict['Nickname']} ({profile_data_dict['Nickname']}). ({idx}/{len(profiles_id_list)})")
             # scanning all posts to discover who interacted with same profile id
             for post in profile_posts_lst:
                 # storing post data in database
@@ -113,28 +123,36 @@ def scan_profile_posts_fetch_comments_calculate_engagement(profile, profile_post
     profile_engagement_during_period = 0
 
     # scanning all posts to discover who interacted with same profile id
-    logger.debug(f"Iterating over {profile['Name']} post comments to identify Instagram users who interacted with {profile['Name']}.")
+    logger.debug(f"Iterating over {profile['Nickname']} post comments to identify Instagram users who interacted with {profile['Nickname']}.")
     for j, post in enumerate(profile_posts_lst):
-        # storing post into database table
-        post_data_tuple = api_connector.get_post_data_tuple_from_json(post)
-        posts_database_connector.save_post_to_database(POSTS_TABLE_NAME, post_data_tuple)
-
-        logger.debug(f"identifying profiles that commented on the post with ID {post['id']}. ({j+1}/{len(profile_posts_lst)}")
         # adding the post engagement to the profile total engagement in the last month
         if post['likes_count'] is not None:
             profile_engagement_during_period += post['likes_count']
         if post['comments_count'] is not None:
             profile_engagement_during_period += post['comments_count']
+            logger.debug(f"Fetching post {post['id']} comment's which was posted by {profile['Nickname']}")
 
-        logger.debug(f"Fetching post {post['id']} comment's which was posted by {profile['Name']}")
-        comments_lst = api_connector.get_post_comments(post['id'], FROM_DATE, MAX_AMOUNT)
+            # fetching post comments only if the post has comments
+            if post['comments_count'] > 0:
+                # storing post into database table (only if it has comments)
+                post_data_tuple = api_connector.get_post_data_tuple_from_json(post)
+                posts_database_connector.save_post_to_database(POSTS_TABLE_NAME, post_data_tuple)
 
-        if len(comments_lst) != 0:
-            # scanning comments to find new profiles that interacted with current profile
-            new_profiles_found_from_post_count = find_store_new_profiles_from_comment(comments_lst)
-            logger.info(f"{new_profiles_found_from_post_count} New profiles were found while scanning post {post['id']} comments")
-            logger.info(f">>>> Currently, [{snowballed_profiles_id_counter}]profiles were found during snowball <<<<")
-    
+                comments_lst = api_connector.get_post_comments(post['id'], FROM_DATE, MAX_AMOUNT)
+
+                # checking if we got a non-empty comments list
+                if len(comments_lst) != 0:
+                    logger.info(
+                        f"identifying profiles that commented on the post with ID {post['id']} which was was posted by {profile['Nickname']}. (post {j + 1} out of {len(profile_posts_lst)})")
+                    # scanning comments to find new profiles that interacted with current profile
+                    new_profiles_found_from_post_count = find_store_new_profiles_from_comment(comments_lst)
+                    logger.info(
+                        f"{new_profiles_found_from_post_count} New profiles were found while scanning post {post['id']} comments")
+                    logger.info(
+                        f">>>> Currently, [{snowballed_profiles_id_counter}] profiles were found during snowball <<<<")
+
+
+
     return profile_engagement_during_period
 
 
@@ -151,8 +169,8 @@ def snowball(profiles_id_list):
         profile = api_connector.get_profile_data_dict_from_json(profile_json)
 
         if profile is not None and len(profile_posts_lst) != 0:
-            logger.info(f"Snowballing profile {profile['Name']} ({profile['Nickname']}) with id {profile['ID']}. ")
-            logger.info(f"[[[{len(profile_posts_lst)} Posts were posted by {profile['Name']} ({profile['Nickname']}) in the last {WANTED_PERIOD}]]]")
+            logger.info(f"Snowballing profile {profile['Nickname']} with id {profile['ID']}. ")
+            logger.info(f"[[[{len(profile_posts_lst)} Posts were posted by {profile['Nickname']} in the last {WANTED_PERIOD}]]]")
 
             # scanning profile posts to calculate engagement and find new profiles
             profile_engagement_during_period = scan_profile_posts_fetch_comments_calculate_engagement(profile, profile_posts_lst)
@@ -234,4 +252,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
