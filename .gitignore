@@ -4,3 +4,5 @@
 *.pdf
 *.mp4
 *.csv
+*.parquet
+*.db
