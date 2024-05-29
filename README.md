@@ -19,23 +19,26 @@ To configure the script, you can find the global configuration settings at the t
 
 * Clustering Parameters
 
-  * MIN_CLUSTERS: The minimum number of clusters.
-  * MAX_CLUSTERS: The maximum number of clusters.
+  * <b>MIN_CLUSTERS:</b> The minimum number of clusters.
+  * <b>MAX_CLUSTERS:</b> The maximum number of clusters.
 * Column Names
 
-  * CAPTIONS_COLUMN_NAME: The name of the content_text column inside the dataset . 
-  * EMBEDDINGS_COLUMN_NAME: The name of the column that includes/will include (depends on <b>embed_posts_captions</b> flag) the posts' captions embeddings in the dataset..
+  * <b>CAPTIONS_COLUMN_NAME:</b> The name of the content_text column inside the dataset . 
+  * <b>EMBEDDINGS_COLUMN_NAME:</b> The name of the column that includes/will include (depends on <b>embed_posts_captions</b> flag) the posts' captions embeddings in the dataset..
 * File Paths
 
-  * script_outputs_folder_url: URL of the folder for script outputs.
-  * script_inputs_folder_url: URL of the folder for script inputs.
-  * posts_data_file_url: URL of the file containing posts data.
-  * embedded_posts_file_url: URL of the file containing embedded posts data.
+  * <b>script_outputs_folder_url:</b> URL of the folder for script outputs.
+  * <b>script_inputs_folder_url:</b> URL of the folder for script inputs.
+  * <b>posts_data_file_url:</b> URL of the file containing posts data.
+  * <b>embedded_posts_file_url:</b> URL of the file containing embedded posts data.
 * Flags
 
-  * embed_posts_captions: Set to True to embed posts' content_text.
-  * calculate_optimal_clusters_number: Set to True to calculate the optimal number of clusters.
+  * <b>embed_posts_captions:</b> Set to True to embed posts' content_text.
+  * <b>calculate_optimal_clusters_number:</b> Set to True to calculate the optimal number of clusters.
 ##### Note: If these flags are set to False, the script will use the output files from previous runs. Ensure to set the flags to True for the initial run to generate the necessary output files.
+  * OPTIMAL_CLUSTERS_NUMBER
+    -  Setting OPTIMAL_CLUSTERS_NUMBER to a positive number will cancel optimal cluster's number calculation process even if the calculate_optimal_clusters_number flag is turned on! and the chosen positive number will be used. 
+
 
 ## outputs
 The script generates several files, which can be found in the output folder specified in the script configurations tab.
