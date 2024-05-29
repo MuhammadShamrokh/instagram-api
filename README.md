@@ -36,3 +36,4 @@ To configure the script, you can find the global configuration settings at the t
   * embed_posts_captions: Set to True to embed posts' captions. Default is True.
   * calculate_optimal_clusters_number: Set to True to calculate the optimal number of clusters. Default is True.
 ##### Note: If these flags are set to False, the script will use the output files from previous runs. Ensure to set the flags to True for the initial run to generate the necessary output files.
+asdas
