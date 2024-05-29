@@ -37,7 +37,13 @@ To configure the script, you can find the global configuration settings at the t
   * calculate_optimal_clusters_number: Set to True to calculate the optimal number of clusters.
 ##### Note: If these flags are set to False, the script will use the output files from previous runs. Ensure to set the flags to True for the initial run to generate the necessary output files.
 
-## script outputs
+## outputs
 The script generates several files, which can be found in the output folder specified in the script configurations tab.
-
-
+ 1. <b>embedded_tweets.parquet</b> - A Parquet file that includes the original dataset with an additional embedding column.
+##### Note: This file can be found in the inputs folder.
+ 2. <b>optimal-num-of-clusters-calculation-results.csv</b> - Includes all the results (WCSS calculated) from determining the optimal number of clusters.
+ 3. <b>optimal-clusters-number.csv</b> - Includes the optimal number of clusters
+ 4. <b>clusters-captions.parquet</b> - Includes all the posts' content text per cluster in a table.
+ 5. <b>n-gram-method-clusters-names.csv</b> - Includes cluster names produced using the n-gram method.
+ 6. <b>tf-idf-method-clusters-names.csv</b> - Includes cluster names produced using the tf-idf method.
+ 7. <b>n-gram-tfidf-method-clusters-names.csv</b> - Includes cluster names produced using the n-gram and tf-idf methods combined.
