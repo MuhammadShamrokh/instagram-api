@@ -40,7 +40,7 @@ To configure the script, you can find the global configuration settings at the t
 ## outputs
 The script generates several files, which can be found in the output folder specified in the script configurations tab.
  1. <b>embedded_tweets.parquet</b> - A Parquet file that includes the original dataset with an additional embedding column.
-##### Note: This file can be found in the inputs folder.
+ ##### Note: This file can be found in the inputs folder.
  2. <b>optimal-num-of-clusters-calculation-results.csv</b> - Includes all the results (WCSS calculated) from determining the optimal number of clusters.
  3. <b>optimal-clusters-number.csv</b> - Includes the optimal number of clusters
  4. <b>clusters-captions.parquet</b> - Includes all the posts' content text per cluster in a table.
